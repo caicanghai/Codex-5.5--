@@ -1,0 +1,68 @@
+# 威胁 Watchlist —— 命中即在每日重点中加权置顶
+#
+# 用法：ranker 阶段对每条 Event 的标题/摘要做关键词匹配，
+# 命中下列任一 alias 即加上对应 weight（可与来源权重、时效叠加）。
+# alias 同时给中英文，保证中英文源都能命中。
+#
+# 说明：本表用于「追踪关于这些威胁的公开报道/情报」（防御向 CTI）。
+# 其中 social_engineering_db 类目仅作为**新闻话题**追踪（如泄露事件、执法查处报道），
+# 不作为可查询个人数据的数据源接入。
+
+watchlist:
+
+  # ---- 加载器 / Loader ----
+  - name: Olymp Loader
+    category: loader
+    weight: 3
+    aliases: ["Olymp Loader", "OlympLoader", "Olymp"]
+
+  # ---- 窃密木马 / Infostealer ----
+  - name: Lumma Stealer
+    category: infostealer
+    weight: 3
+    aliases: ["Lumma Stealer", "LummaStealer", "LummaC2", "Lumma", "Luma Infostealer", "Luma Stealer"]
+
+  # ---- 远控木马 / RAT ----
+  - name: DcRat
+    category: rat
+    weight: 2
+    aliases: ["DcRat", "DarkCrystal RAT", "DarkCrystalRAT"]
+
+  # ---- 银狐 / Silver Fox（针对中文用户的木马家族，常关联 ValleyRAT）----
+  - name: 银狐 / Silver Fox
+    category: rat
+    weight: 3
+    aliases: ["银狐", "银狐木马", "Silver Fox", "SilverFox", "ValleyRAT", "Valley RAT"]
+
+  # ---- The Mask / Careto（APT 组织）----
+  # 注：原文 "mask" 词义宽泛，按 APT「The Mask / Careto」处理，避免误命中普通词
+  - name: The Mask (Careto)
+    category: apt
+    weight: 2
+    aliases: ["The Mask APT", "Careto", "Careto APT", "Mask APT"]
+
+  # ---- 钓鱼即服务 / PhaaS ----
+  - name: Sniper Dz
+    category: phishing
+    weight: 2
+    aliases: ["Sniper Dz", "SniperDz", "Sniper-Dz"]
+
+  # ---- 社工库相关（仅作为新闻话题追踪，不接入为查询源）----
+  - name: 社工库（新闻话题）
+    category: social_engineering_db_news
+    weight: 2
+    track_as: news_topic_only     # 仅追踪相关报道，禁止接入查询
+    aliases: ["社工库", "巨人社工库", "SGK", "开盒"]
+
+# 供 ranker 直接消费的扁平权重表（由脚本从上表生成，此处示例）
+keyword_weights_generated:
+  "Olymp Loader": 3
+  "Lumma": 3
+  "LummaC2": 3
+  "DcRat": 2
+  "银狐": 3
+  "Silver Fox": 3
+  "ValleyRAT": 3
+  "Careto": 2
+  "Sniper Dz": 2
+  "社工库": 2
