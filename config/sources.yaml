@@ -109,6 +109,39 @@ sources:
     weight: 1.1
     enabled: true
 
+  - id: wx_aweijianggongfang
+    type: wechat_rss
+    name: "阿伟讲攻防"
+    region: ""
+    rss_url: ""            # TODO
+    weight: 1.3
+    enabled: true
+
+  - id: wx_githubdaily
+    type: wechat_rss
+    name: "GitHubDaily"
+    region: "广东"
+    rss_url: ""            # TODO（GitHubDaily 亦有官方渠道，可优先官方源）
+    weight: 1.0
+    enabled: true
+
+  - id: wx_guangguangwgithub
+    type: wechat_rss
+    name: "逛逛 GitHub"
+    region: "浙江"
+    rss_url: ""            # TODO
+    weight: 1.0
+    enabled: true
+
+  - id: wx_githubzhongwen
+    type: wechat_rss
+    name: "Github 中文社区"
+    region: "上海闵行"
+    homepage: "https://www.githubs.cn"
+    rss_url: ""            # TODO
+    weight: 1.0
+    enabled: true
+
   # ================= RSS 源(占位,来自架构文档,后续补全) =================
   # - id: thehackernews
   #   type: rss
