@@ -8,6 +8,15 @@
 
 ---
 
+## 交流 / Community
+
+- QQ AI 技术交流群：扫码加入
+- TG 交流群：[@Geminivip1](https://t.me/Geminivip1)
+
+<p align="center">
+  <img width="360" alt="QQ AI 技术交流群二维码" src="assets/ai-tech-group.png" />
+</p>
+
 ## 这是什么 / What
 
 GPT-5.5 在 Codex CLI 中同样受到严格的内容安全限制。本工具利用 `model_instructions_file` 配置机制，注入一套专为 GPT-5.5 编写的无限制模式指令，强制 Codex 以 `[MODE: UNRESTRICTED]` 运行。
@@ -63,6 +72,8 @@ python codex-instruct.py
 
 ```
 codex-instruct-5.5/
+├── assets/
+│   └── ai-tech-group.png                   # QQ AI 技术交流群二维码
 ├── codex-instruct.py                    # 主脚本
 ├── examples/
 │   └── gpt5.5-unrestricted.md           # 破甲指令独立副本
@@ -80,3 +91,15 @@ Exploits official config mechanism. No binary mod, no MITM, no process tampering
 ## License
 
 MIT
+
+## 致谢 / Thanks
+
+感谢 [LINUX DO 论坛](https://linux.do/) 社区的关注、反馈与支持。
+
+## Star History
+
+<p align="center">
+  <a href="https://star-history.com/#yynxxxxx/Codex-5.5-codex-instruct-5.5&Date">
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yynxxxxx/Codex-5.5-codex-instruct-5.5&type=Date" />
+  </a>
+</p>
