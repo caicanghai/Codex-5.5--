@@ -1,0 +1,33 @@
+# 主配置示例。复制为 config.yaml 后按需修改（config.yaml 优先，不存在则用本示例）。
+# 密钥不在这里！密钥全部放 .env / 环境变量，见 .env.example。
+
+schedule:
+  cron: "0 9 * * *"       # 每天 09:00 推送（Asia/Shanghai）
+  lookback_hours: 26      # 采集窗口，略大于 24h 防漏
+
+db_path: "digest.db"      # SQLite 状态库路径
+
+ranker:
+  top_n: 20               # 进入每日重点的最多条数
+  min_score: 2.0          # 低于此分不进重点
+  keyword_weights:        # 额外关键词权重（与 watchlist.yaml 合并）
+    "0day": 3
+    "在野利用": 3
+    "rce": 2
+    "供应链": 2
+    "数据泄露": 2
+    "勒索": 2
+    "poc": 1
+    "exp": 1
+
+summarizer:
+  model: "claude-haiku-4-5"   # 批量摘要用快模型；不配 API Key 会自动降级为原始摘要
+  top_highlights: 3           # 今日 TOP 数量
+
+notifiers:                # 开关；实际是否生效还取决于对应环境变量是否已填
+  telegram_bot:
+    enabled: true
+  wecom:
+    enabled: true
+  serverchan:
+    enabled: true

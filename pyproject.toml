@@ -1,0 +1,28 @@
+[project]
+name = "security-daily-digest"
+version = "0.1.0"
+description = "安全资讯每日重点聚合与推送（微信公众号 / Telegram / RSS -> Telegram Bot / 企业微信 / Server酱）"
+requires-python = ">=3.10"
+dependencies = [
+    "feedparser>=6.0.10",
+    "httpx>=0.27.0",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+full = [
+    "anthropic>=0.40.0",
+    "telethon>=1.36.0",
+    "APScheduler>=3.10.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+digest = "digest.main:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
