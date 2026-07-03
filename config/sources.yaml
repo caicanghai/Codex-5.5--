@@ -1,0 +1,44 @@
+# 数据源清单 —— 由采集器按 type 分发
+# Telegram 频道当前先登记；采集方式(Telethon 个人端 / Bot 加入频道)待你确认后填 credentials。
+
+sources:
+
+  # ================= Telegram 频道 =================
+  # 均为公开频道，@username 即可订阅。weight 越高越易进入每日重点。
+  - id: tg_xinyuanai
+    type: telegram
+    channel: "@xinyuanai"
+    url: https://t.me/xinyuanai
+    weight: 1.0
+    enabled: true
+
+  - id: tg_nonglidaji
+    type: telegram
+    channel: "@nonglidaji"
+    url: https://t.me/nonglidaji
+    weight: 1.0
+    enabled: true
+
+  - id: tg_kkaifenxiang
+    type: telegram
+    channel: "@kkaifenxiang"
+    url: https://t.me/kkaifenxiang
+    weight: 1.0
+    enabled: true
+
+  - id: tg_ooapk
+    type: telegram
+    channel: "@OOAPK"
+    url: https://t.me/OOAPK
+    weight: 1.0
+    enabled: true
+
+  # ================= RSS 源(占位,来自架构文档,后续补全) =================
+  # - id: thehackernews
+  #   type: rss
+  #   url: https://feeds.feedburner.com/TheHackersNews
+  #   weight: 1.5
+  # - id: anquanke
+  #   type: rss
+  #   url: https://api.anquanke.com/data/v1/rss
+  #   weight: 1.3
