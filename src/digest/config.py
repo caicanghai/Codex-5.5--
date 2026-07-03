@@ -98,6 +98,14 @@ class Config:
     def wechat_group_topic(self) -> str:
         return os.getenv("WECHAT_GROUP_TOPIC", "")
 
+    @property
+    def wcf_http_endpoint(self) -> str:
+        return os.getenv("WCF_HTTP_ENDPOINT", "")
+
+    @property
+    def wcf_receiver(self) -> str:
+        return os.getenv("WCF_RECEIVER", "")
+
     def ready_sources(self) -> list[Source]:
         return [s for s in self.sources if s.enabled and s.is_ready]
 

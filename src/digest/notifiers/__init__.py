@@ -7,6 +7,7 @@ import logging
 from .base import Notifier
 from .serverchan import ServerChanNotifier
 from .telegram_bot import TelegramBotNotifier
+from .wechatferry import WeChatFerryNotifier
 from .wechaty import WechatyNotifier
 from .wecom import WecomNotifier
 
@@ -24,6 +25,8 @@ def build_notifiers(cfg) -> list[Notifier]:
         out.append(WecomNotifier(cfg.wecom_webhook))
     if conf.get("serverchan", {}).get("enabled") and cfg.serverchan_key:
         out.append(ServerChanNotifier(cfg.serverchan_key))
+    if conf.get("wechatferry", {}).get("enabled") and cfg.wcf_http_endpoint and cfg.wcf_receiver:
+        out.append(WeChatFerryNotifier(cfg.wcf_http_endpoint, cfg.wcf_receiver))
     if conf.get("wechaty", {}).get("enabled") and cfg.wechaty_endpoint and cfg.wechat_group_topic:
         out.append(WechatyNotifier(cfg.wechaty_endpoint, cfg.wechat_group_topic))
 
@@ -32,4 +35,4 @@ def build_notifiers(cfg) -> list[Notifier]:
     return out
 
 
-__all__ = ["Notifier", "build_notifiers", "WechatyNotifier"]
+__all__ = ["Notifier", "build_notifiers", "WeChatFerryNotifier", "WechatyNotifier"]

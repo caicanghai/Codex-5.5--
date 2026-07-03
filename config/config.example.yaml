@@ -29,7 +29,9 @@ notifiers:                # 开关；实际是否生效还取决于对应环境�
     enabled: true
   wecom:                  # 企业微信群机器人（个人微信群用不了，保持关）
     enabled: false
-  serverchan:             # 个人微信「服务通知」（非群）
+  serverchan:             # 个人微信「服务通知」（非群，可留作备用）
     enabled: true
-  wechaty:                # 个人微信群（wechaty 小号转发，有封号风险）
+  wechatferry:            # 个人微信群（WeChatFerry, Windows, 推荐）
     enabled: true
+  wechaty:                # 个人微信群（wechaty web协议，登录不稳，备选）
+    enabled: false
