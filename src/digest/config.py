@@ -128,5 +128,5 @@ def load_config(config_dir: Path | None = None) -> Config:
         notifiers=main.get("notifiers", {}),
         sources=sources,
         watchlist=watchlist_raw,
-        db_path=main.get("db_path", "digest.db"),
+        db_path=os.getenv("DIGEST_DB") or main.get("db_path", "digest.db"),
     )

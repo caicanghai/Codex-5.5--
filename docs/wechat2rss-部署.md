@@ -54,7 +54,7 @@ http://<你的IP>:8080/feed/<公众号ID>.xml
     enabled: true
 ```
 
-需要填的 13 个号（当前 `rss_url` 都为空）：
+需要填的 12 个号（当前 `rss_url` 都为空）：
 
 | id | 公众号 | 已知微信号 |
 |----|--------|-----------|
@@ -65,15 +65,16 @@ http://<你的IP>:8080/feed/<公众号ID>.xml
 | wx_wangkongxianhua | 网空闲话 plus | — |
 | wx_chaojinaodong | 超级脑洞 f | `gh_0c1a1d4be5ef` |
 | wx_aweijianggongfang | 阿伟讲攻防 | — |
-| wx_hellogithub | HelloGitHub | 官网亦有 RSS |
 | wx_githubdaily | GitHubDaily | — |
 | wx_guangguangwgithub | 逛逛 GitHub | — |
 | wx_githubzhongwen | Github 中文社区 | githubs.cn |
 | wx_paddlepaddle | 飞桨 PaddlePaddle | — |
 | wx_heibaizhimao | 黑白之猫 | — |
 
+> **HelloGitHub 已改用官方 RSS**（`hellogithub.com/rss`），不占 wechat2rss 名额。
+> 飞桨另有可选的 GitHub 发版 Atom 源（见 sources.yaml 里 `paddle_releases`）。
 > 已知微信号（`gh_`/微信号）能帮 wechat2rss 更快定位到号。
-> 把 13 个地址发我，我可以一次性帮你填好，你就不用手动改 yaml。
+> 把这些地址发我，我可以一次性帮你填好，你就不用手动改 yaml。
 
 ## 验证
 

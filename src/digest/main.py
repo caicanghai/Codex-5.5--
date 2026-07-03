@@ -42,7 +42,12 @@ def cmd_sources() -> None:
     ready = {s.id for s in cfg.ready_sources()}
     print(f"共 {len(cfg.sources)} 个来源，就绪 {len(ready)} 个：\n")
     for s in cfg.sources:
-        flag = "✅" if s.id in ready else "⏳ 待补配置"
+        if s.id in ready:
+            flag = "✅"
+        elif not s.enabled:
+            flag = "🚫 已禁用"
+        else:
+            flag = "⏳ 待补配置"
         detail = s.feed_url or s.channel or "(需 rss_url/channel)"
         print(f"  {flag}  [{s.type:11}] {s.name or s.id:22} {detail}")
 

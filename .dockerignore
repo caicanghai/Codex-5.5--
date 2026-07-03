@@ -1,0 +1,14 @@
+.git
+.env
+*.db
+*.session
+*.session-journal
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+docker/data
+docker/wechat2rss-data
+docs/
+examples/
+codex-instruct.py
