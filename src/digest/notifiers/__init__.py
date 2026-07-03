@@ -7,6 +7,7 @@ import logging
 from .base import Notifier
 from .serverchan import ServerChanNotifier
 from .telegram_bot import TelegramBotNotifier
+from .wechaty import WechatyNotifier
 from .wecom import WecomNotifier
 
 log = logging.getLogger(__name__)
@@ -23,10 +24,12 @@ def build_notifiers(cfg) -> list[Notifier]:
         out.append(WecomNotifier(cfg.wecom_webhook))
     if conf.get("serverchan", {}).get("enabled") and cfg.serverchan_key:
         out.append(ServerChanNotifier(cfg.serverchan_key))
+    if conf.get("wechaty", {}).get("enabled") and cfg.wechaty_endpoint and cfg.wechat_group_topic:
+        out.append(WechatyNotifier(cfg.wechaty_endpoint, cfg.wechat_group_topic))
 
     if not out:
         log.warning("没有可用的推送渠道（检查 config.notifiers 开关与对应环境变量）")
     return out
 
 
-__all__ = ["Notifier", "build_notifiers"]
+__all__ = ["Notifier", "build_notifiers", "WechatyNotifier"]

@@ -9,6 +9,8 @@ __pycache__/
 venv/
 docker/data
 docker/wechat2rss-data
+docker/wechaty-data
+docker/wechaty/node_modules
 docs/
 examples/
 codex-instruct.py

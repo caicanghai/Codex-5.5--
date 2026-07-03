@@ -27,7 +27,9 @@ summarizer:
 notifiers:                # 开关；实际是否生效还取决于对应环境变量是否已填
   telegram_bot:
     enabled: true
-  wecom:
+  wecom:                  # 企业微信群机器人（个人微信群用不了，保持关）
+    enabled: false
+  serverchan:             # 个人微信「服务通知」（非群）
     enabled: true
-  serverchan:
+  wechaty:                # 个人微信群（wechaty 小号转发，有封号风险）
     enabled: true

@@ -36,6 +36,36 @@ def compose_markdown(digest: Digest) -> str:
     return "\n".join(lines)
 
 
+def compose_plaintext(digest: Digest) -> str:
+    """纯文本版（微信等不渲染 Markdown 的渠道用）。链接直接内联。"""
+    lines: list[str] = [f"🛡️ 安全资讯每日重点 · {digest.date}", ""]
+
+    if digest.top_highlights:
+        lines.append("🔥 今日 TOP")
+        for i, ev in enumerate(digest.top_highlights, 1):
+            lines.append(f"{i}. {ev.title}")
+            if ev.highlight_summary:
+                lines.append(f"   {ev.highlight_summary}")
+            lines.append(f"   〔{ev.source_name}〕{ev.url}")
+        lines.append("")
+
+    for cat in _CATEGORY_ORDER:
+        evs = digest.by_category.get(cat)
+        if not evs:
+            continue
+        lines.append(f"【{cat}】")
+        for ev in evs:
+            lines.append(f"· {ev.title}")
+            lines.append(f"  〔{ev.source_name}〕{ev.url}")
+        lines.append("")
+
+    lines.append(
+        f"—— 采集 {digest.total_collected} · 去重后 {digest.total_after_dedup} · "
+        f"重点 {sum(len(v) for v in digest.by_category.values())}"
+    )
+    return "\n".join(lines)
+
+
 def build_digest(date: str, tops: list[Event], ranked: list[Event],
                  total_collected: int, total_after_dedup: int) -> Digest:
     by_category: dict[str, list[Event]] = {}

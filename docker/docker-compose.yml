@@ -22,6 +22,19 @@ services:
       - ./data:/app/data               # digest.db 与 telethon session 持久化
     depends_on:
       - wechat2rss
+      - wechaty
+    restart: unless-stopped
+
+  wechaty:
+    build: ./wechaty
+    container_name: wechaty
+    env_file:
+      - ../.env
+    environment:
+      - PORT=8788
+    # 扫码登录：docker compose logs -f wechaty 看二维码，用微信【小号】扫
+    volumes:
+      - ./wechaty-data:/app/.wechaty     # 登录态持久化，避免每次重扫
     restart: unless-stopped
 
   wechat2rss:

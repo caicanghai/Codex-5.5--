@@ -90,6 +90,14 @@ class Config:
     def serverchan_key(self) -> str:
         return os.getenv("SERVERCHAN_KEY", "")
 
+    @property
+    def wechaty_endpoint(self) -> str:
+        return os.getenv("WECHATY_ENDPOINT", "")
+
+    @property
+    def wechat_group_topic(self) -> str:
+        return os.getenv("WECHAT_GROUP_TOPIC", "")
+
     def ready_sources(self) -> list[Source]:
         return [s for s in self.sources if s.enabled and s.is_ready]
 
