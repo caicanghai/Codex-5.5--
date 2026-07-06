@@ -66,13 +66,23 @@ def cmd_tgchats() -> None:
     if not token:
         print("❌ 没读到 TELEGRAM_BOT_TOKEN。先在 .env 填上再运行本命令。")
         return
+    base = f"https://api.telegram.org/bot{token}"
     try:
-        me = httpx.get(f"https://api.telegram.org/bot{token}/getMe", timeout=20).json()
+        me = httpx.get(f"{base}/getMe", timeout=20).json()
         if not me.get("ok"):
-            print(f"❌ token 无效：{me}")
+            if me.get("error_code") == 401:
+                print("❌ token 无效(401 Unauthorized)：复制缺字符或已被 /revoke。")
+                print("   去 @BotFather 发 /token 选 @你的bot 拿当前有效 token，重填 .env。")
+            else:
+                print(f"❌ token 校验失败：{me}")
             return
         print(f"✅ Bot 正常：@{me['result'].get('username')}")
-        data = httpx.get(f"https://api.telegram.org/bot{token}/getUpdates", timeout=20).json()
+        # 清掉可能存在的旧 webhook/轮询连接（解决 409 Conflict / “原先连着”）
+        httpx.get(f"{base}/deleteWebhook", params={"drop_pending_updates": "false"}, timeout=20)
+        data = httpx.get(f"{base}/getUpdates", timeout=20).json()
+        if not data.get("ok") and data.get("error_code") == 409:
+            print("⚠️ 检测到冲突(409)：另有程序在用此 bot 拉取。已尝试清除，请稍后重跑本命令。")
+            return
     except Exception as exc:  # noqa: BLE001
         print(f"❌ 连不上 Telegram（本机需能访问 api.telegram.org）：{exc}")
         return
