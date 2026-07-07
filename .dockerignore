@@ -1,0 +1,16 @@
+.git
+.env
+*.db
+*.session
+*.session-journal
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+docker/data
+docker/wechat2rss-data
+docker/wechaty-data
+docker/wechaty/node_modules
+docs/
+examples/
+codex-instruct.py

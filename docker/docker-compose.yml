@@ -1,0 +1,57 @@
+# 一键部署：聚合推送 app + wechat2rss(公众号转RSS) + rsshub(其它源转RSS)
+#
+#   cd docker && docker compose up -d
+#
+# 说明：
+# - digest    : 主程序，按 config 的 cron 每日聚合并推送
+# - wechat2rss: 把 13 个公众号转成 RSS（首次需扫码登录一个微信小号）
+# - rsshub    : 把 bilibili / 部分无原生RSS 的源转成 RSS（可选）
+#
+# 密钥放在项目根 .env（本文件 env_file 指向它）。
+
+services:
+  digest:
+    build: ..
+    container_name: digest
+    env_file:
+      - ../.env
+    environment:
+      - DIGEST_DB=/app/data/digest.db
+    volumes:
+      - ../config:/app/config          # 改 sources.yaml/config.yaml 即时生效（重启容器）
+      - ./data:/app/data               # digest.db 与 telethon session 持久化
+    depends_on:
+      - wechat2rss
+      - wechaty
+    restart: unless-stopped
+
+  wechaty:
+    build: ./wechaty
+    container_name: wechaty
+    env_file:
+      - ../.env
+    environment:
+      - PORT=8788
+    # 扫码登录：docker compose logs -f wechaty 看二维码，用微信【小号】扫
+    volumes:
+      - ./wechaty-data:/app/.wechaty     # 登录态持久化，避免每次重扫
+    restart: unless-stopped
+
+  wechat2rss:
+    image: rachelos/wechat2rss:latest   # 以实际可用镜像/版本为准
+    container_name: wechat2rss
+    ports:
+      - "8001:8080"                     # 后台: http://<IP>:8001 扫码登录+添加公众号
+    volumes:
+      - ./wechat2rss-data:/app/data
+    restart: unless-stopped
+
+  rsshub:
+    image: diygod/rsshub:latest
+    container_name: rsshub
+    ports:
+      - "1200:1200"                     # 路由示例: http://<IP>:1200/bilibili/user/dynamic/<uid>
+    environment:
+      - NODE_ENV=production
+      - CACHE_TYPE=memory
+    restart: unless-stopped

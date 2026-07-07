@@ -1,0 +1,10 @@
+# 核心（必须）
+feedparser>=6.0.10        # RSS/Atom 解析
+httpx>=0.27.0             # 推送 HTTP 请求
+PyYAML>=6.0              # 读配置
+
+# 可选（对应功能用到时才需要，缺失会自动降级/跳过）
+anthropic>=0.40.0         # Claude 摘要（不装则用原始摘要）
+telethon>=1.36.0          # Telegram 频道采集（不装则跳过 tg 源）
+APScheduler>=3.10.0       # 定时调度 serve（跑 run/preview 不需要）
+python-dotenv>=1.0.0      # 自动加载 .env（也可用系统环境变量）
