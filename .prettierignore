@@ -14,3 +14,13 @@ codex-instruct.py
 .github/workflows/python-app.yml
 .devcontainer
 .vscode
+
+# Python MVP backend + infra (not formatted by the JS/Prettier toolchain).
+app
+scripts
+docker-compose.yml
+Dockerfile
+.dockerignore
+requirements.txt
+.env.example
+docs/architecture
