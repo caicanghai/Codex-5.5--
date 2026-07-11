@@ -1,0 +1,58 @@
+# EIOS API — OpenAPI skeleton (Milestone 0)
+#
+# Structure only. NO endpoints are defined yet. `paths` is intentionally empty.
+# Endpoints are added contract-first in later milestones (see CODING_RULES §3).
+
+openapi: 3.1.0
+
+info:
+  title: EIOS API
+  version: 0.0.0
+  description: >
+    Evidence Intelligence & Omnichannel System — management and integration API.
+    Milestone 0 skeleton: no endpoints implemented.
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development (placeholder)
+
+tags:
+  - name: system
+    description: System and health (added in a later milestone)
+  - name: identity
+    description: Identity Layer (added in a later milestone)
+  - name: evidence
+    description: Evidence Intelligence (added in a later milestone)
+  - name: interest
+    description: Interest Catalog (added in a later milestone)
+  - name: workflow
+    description: Workflow Engine (added in a later milestone)
+  - name: broadcast
+    description: Broadcast Engine (added in a later milestone)
+
+# No endpoints in Milestone 0.
+paths: {}
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Tenant-scoped API key (isolation defined in SECURITY.md).
+  schemas:
+    # Domain schemas are documented conceptually in /schemas/domain.
+    # Concrete component schemas are added contract-first in later milestones.
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required: [code, message]
+
+security:
+  - ApiKeyAuth: []

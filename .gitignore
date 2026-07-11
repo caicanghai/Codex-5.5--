@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Secrets & local env (NEVER commit) — see docs/SECURITY.md
+.env
+.env.*
+!.env.example
+deployments/.env
+!deployments/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+
+# Docker local volumes (if bind-mounted locally)
+.docker-data/

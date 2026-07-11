@@ -1,0 +1,118 @@
+# EIOS — development topology (Milestone 0)
+#
+# Placeholders only. Backing services are declared so local dev mirrors
+# production; application services (gateway/api/worker) are commented
+# placeholders because no application logic exists yet in Milestone 0.
+#
+# Validate with:
+#   docker compose -f deployments/docker-compose.dev.yml config
+#
+# Values default to safe local placeholders; override via deployments/.env.
+
+name: eios-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eios}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eios_local_placeholder}
+      POSTGRES_DB: ${POSTGRES_DB:-eios}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-eios}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-eios}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-eios_local_placeholder}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Placeholder — integration deferred to a later milestone (do NOT implement).
+  directus:
+    image: directus/directus:latest
+    restart: unless-stopped
+    profiles: ['placeholder']
+    environment:
+      SECRET: ${DIRECTUS_SECRET:-eios_local_placeholder}
+      DB_CLIENT: pg
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_DATABASE: ${POSTGRES_DB:-eios}
+      DB_USER: ${POSTGRES_USER:-eios}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-eios_local_placeholder}
+    ports:
+      - '${DIRECTUS_PORT:-8055}:8055'
+    depends_on:
+      - postgres
+
+  # Placeholder — integration deferred to a later milestone (do NOT implement).
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    profiles: ['placeholder']
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: '5678'
+    ports:
+      - '${N8N_PORT:-5678}:5678'
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # ---------------------------------------------------------------------------
+  # Application services (Milestone 0 placeholders — NOT implemented).
+  # Uncomment and provide build contexts in a later milestone.
+  #
+  # gateway:
+  #   build: ../services/gateway
+  #   depends_on: [postgres, redis]
+  #   ports: ["${GATEWAY_PORT:-8080}:8080"]
+  #
+  # api:
+  #   build: ../services/api
+  #   depends_on: [postgres, redis, minio]
+  #   ports: ["${API_PORT:-3000}:3000"]
+  #
+  # worker:
+  #   build: ../services/worker
+  #   depends_on: [postgres, redis]
+  # ---------------------------------------------------------------------------
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  n8n_data:
