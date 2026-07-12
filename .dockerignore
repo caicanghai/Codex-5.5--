@@ -17,6 +17,9 @@ examples
 .venv
 __pycache__
 *.pyc
+pyproject.toml
+requirements-dev.txt
+backups
 .env
 .env.*
 !.env.example

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,8 +18,14 @@ class Settings(BaseSettings):
 
     # AI summarization (OpenAI-compatible). If no key, an offline extractive
     # summarizer is used so the pipeline still works end to end.
-    ai_api_key: str = ""
-    ai_base_url: str = "https://api.openai.com/v1"
+    # Accepts AI_API_KEY or OPENAI_API_KEY.
+    ai_api_key: str = Field(
+        default="", validation_alias=AliasChoices("AI_API_KEY", "OPENAI_API_KEY")
+    )
+    ai_base_url: str = Field(
+        default="https://api.openai.com/v1",
+        validation_alias=AliasChoices("AI_BASE_URL", "OPENAI_BASE_URL"),
+    )
     ai_model: str = "gpt-4o-mini"
 
     # TTS

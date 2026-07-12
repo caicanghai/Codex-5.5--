@@ -1,0 +1,36 @@
+name: python-ci
+
+# Lint + tests for the Python MVP backend.
+
+on:
+  push:
+    branches: [eios/main, develop, 'feature/**', 'claude/**']
+  pull_request:
+    branches: [eios/main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Ruff lint
+        run: ruff check app scripts tests
+
+      - name: Pytest
+        run: pytest

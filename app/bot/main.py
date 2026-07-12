@@ -108,6 +108,15 @@ async def _post_init(app: Application) -> None:
     app.create_task(_heartbeat_loop())
 
 
+def build_application(token: str) -> Application:
+    """Build the bot Application with handlers wired (no network I/O)."""
+    application = Application.builder().token(token).post_init(_post_init).build()
+    application.add_handler(CommandHandler("start", on_start))
+    application.add_handler(CommandHandler("help", on_start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
+    return application
+
+
 def main() -> None:
     if not settings.telegram_bot_token:
         raise SystemExit("TELEGRAM_BOT_TOKEN is not set — cannot start the bot.")
@@ -115,16 +124,7 @@ def main() -> None:
     ensure_schema()
     _touch_heartbeat()
 
-    application = (
-        Application.builder()
-        .token(settings.telegram_bot_token)
-        .post_init(_post_init)
-        .build()
-    )
-    application.add_handler(CommandHandler("start", on_start))
-    application.add_handler(CommandHandler("help", on_start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
-
+    application = build_application(settings.telegram_bot_token)
     log.info("EIOS bot starting (long polling)…")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
