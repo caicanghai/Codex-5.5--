@@ -1,5 +1,27 @@
 name: eios-mvp
 
+x-channel-env: &channel_env
+  CHANNELS_ENABLED: ${CHANNELS_ENABLED:-telegram}
+  WECOM_ENABLED: ${WECOM_ENABLED:-false}
+  WECOM_CORP_ID: ${WECOM_CORP_ID:-}
+  WECOM_AGENT_ID: ${WECOM_AGENT_ID:-}
+  WECOM_SECRET: ${WECOM_SECRET:-}
+  WECOM_TARGET_USER: ${WECOM_TARGET_USER:-}
+  WECOM_TARGET_PARTY: ${WECOM_TARGET_PARTY:-}
+  WECOM_TARGET_TAG: ${WECOM_TARGET_TAG:-}
+  WECHAT_OFFICIAL_ENABLED: ${WECHAT_OFFICIAL_ENABLED:-false}
+  WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+  WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+  WECHAT_TOKEN: ${WECHAT_TOKEN:-}
+  WECHAT_AES_KEY: ${WECHAT_AES_KEY:-}
+  WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+  WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+  WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+  WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID:-}
+  WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+  WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+  WHATSAPP_RECIPIENT: ${WHATSAPP_RECIPIENT:-}
+
 services:
   db:
     image: postgres:16-alpine
@@ -32,6 +54,7 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      <<: *channel_env
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-eios}:${POSTGRES_PASSWORD:-eios}@db:5432/${POSTGRES_DB:-eios}
       REDIS_URL: redis://redis:6379/0
       AI_API_KEY: ${AI_API_KEY:-${OPENAI_API_KEY:-}}
@@ -57,6 +80,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "app.bot.main"]
     environment:
+      <<: *channel_env
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-eios}:${POSTGRES_PASSWORD:-eios}@db:5432/${POSTGRES_DB:-eios}
       REDIS_URL: redis://redis:6379/0
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env}

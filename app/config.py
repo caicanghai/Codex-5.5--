@@ -51,6 +51,41 @@ class Settings(BaseSettings):
     voice_max_upload_mb: int = 20
     voice_sample_retention: bool = False
 
+    # ---- Multi-channel messaging (Phase 3) ----
+    channels_enabled: str = "telegram"  # comma list: telegram,wecom,wechat_official,whatsapp
+
+    # WeCom (企业微信 self-built app)
+    wecom_enabled: bool = False
+    wecom_corp_id: str = ""
+    wecom_agent_id: str = ""
+    wecom_secret: str = ""
+    wecom_target_user: str = ""
+    wecom_target_party: str = ""
+    wecom_target_tag: str = ""
+    wecom_base_url: str = "https://qyapi.weixin.qq.com"
+
+    # WeChat Official Account (微信公众号)
+    wechat_official_enabled: bool = False
+    wechat_app_id: str = ""
+    wechat_app_secret: str = ""
+    wechat_token: str = ""
+    wechat_aes_key: str = ""
+    wechat_base_url: str = "https://api.weixin.qq.com"
+
+    # WhatsApp Business Cloud API (Meta official)
+    whatsapp_enabled: bool = False
+    whatsapp_access_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_business_account_id: str = ""
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_recipient: str = ""
+    whatsapp_base_url: str = "https://graph.facebook.com/v20.0"
+
+    # Router
+    channel_retry_attempts: int = 2
+    delivery_dedup_ttl_seconds: int = 3600
+
     # Limits
     summary_sentences: int = 5
     tts_max_chars: int = 1800

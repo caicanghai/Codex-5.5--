@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
 from app import cache
 from app.db import SessionLocal, ensure_schema
+from app.messaging.wechat_official import WeChatOfficialProvider
+from app.messaging.whatsapp import verify_webhook as whatsapp_verify_webhook
 from app.pipeline.service import process_url
 
 
@@ -66,3 +68,39 @@ async def ingest_endpoint(body: IngestRequest) -> IngestResponse:
         summary=result.summary,
         source=result.source,
     )
+
+
+# ---- Inbound webhooks (official APIs only; isolated from the Telegram bot) ----
+@app.get("/webhook/whatsapp")
+def whatsapp_verify(request: Request):
+    q = request.query_params
+    challenge = whatsapp_verify_webhook(
+        q.get("hub.mode", ""), q.get("hub.verify_token", ""), q.get("hub.challenge", "")
+    )
+    if challenge is None:
+        raise HTTPException(status_code=403, detail="verification failed")
+    return Response(content=challenge, media_type="text/plain")
+
+
+@app.post("/webhook/whatsapp")
+async def whatsapp_receive(_: Request) -> dict:
+    # Acknowledge receipt; message handling is added when inbound flows are needed.
+    return {"status": "received"}
+
+
+@app.get("/webhook/wechat")
+def wechat_verify(request: Request):
+    q = request.query_params
+    provider = WeChatOfficialProvider()
+    if provider.verify_webhook(q.get("signature", ""), q.get("timestamp", ""), q.get("nonce", "")):
+        return Response(content=q.get("echostr", ""), media_type="text/plain")
+    raise HTTPException(status_code=403, detail="signature mismatch")
+
+
+@app.post("/webhook/wechat")
+async def wechat_receive(request: Request):
+    q = request.query_params
+    provider = WeChatOfficialProvider()
+    if not provider.verify_webhook(q.get("signature", ""), q.get("timestamp", ""), q.get("nonce", "")):
+        raise HTTPException(status_code=403, detail="signature mismatch")
+    return Response(content="success", media_type="text/plain")

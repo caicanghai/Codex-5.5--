@@ -19,6 +19,8 @@ from telegram.ext import (
 
 from app.config import settings
 from app.db import ensure_schema
+from app.messaging.registry import PRIORITY, all_providers, enabled_providers
+from app.messaging.service import MessageRouter
 from app.pipeline.ingest import extract_url
 from app.pipeline.service import process_url
 from app.voice.service import (
@@ -122,6 +124,79 @@ async def on_speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _send_voice_for(update.message, text, update.effective_user.id)
 
 
+async def on_channels(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    providers = all_providers()
+    enabled = {p.name for p in enabled_providers()}
+    lines = ["渠道状态："]
+    for name in PRIORITY:
+        configured = providers[name].validate_config()
+        mark = "✅ enabled" if name in enabled else ("⚙️ configured" if configured else "❌ off")
+        lines.append(f"- {name}: {mark}")
+    await update.message.reply_text("\n".join(lines))
+
+
+async def on_channel_status(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    lines = ["healthcheck："]
+    for p in all_providers().values():
+        try:
+            ok = await p.healthcheck()
+        except Exception:
+            ok = False
+        lines.append(f"- {p.name}: {'ok' if ok else 'unavailable'}")
+    await update.message.reply_text("\n".join(lines))
+
+
+async def on_channel_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    if not context.args:
+        await update.message.reply_text("用法：/channel_test <telegram|wecom|wechat|whatsapp>")
+        return
+    key = context.args[0].strip().lower()
+    alias = {"wechat": "wechat_official"}
+    name = alias.get(key, key)
+    providers = all_providers()
+    if name not in providers:
+        await update.message.reply_text(f"未知渠道：{key}")
+        return
+    provider = providers[name]
+    if not provider.validate_config():
+        await update.message.reply_text(f"{name}: 未配置，已跳过。")
+        return
+    try:
+        await provider.send_text(provider.default_target, "EIOS channel test ✅")
+        await update.message.reply_text(f"{name}: 已发送测试消息。")
+    except Exception as exc:  # noqa: BLE001
+        await update.message.reply_text(f"{name}: 发送失败 {type(exc).__name__}: {exc}")
+
+
+async def on_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    text = " ".join(context.args) if context.args else ""
+    if not text.strip():
+        await update.message.reply_text("用法：/broadcast <文本>")
+        return
+    ogg = None
+    try:
+        try:
+            ogg, _prov = await voice_service.synthesize(text, owner_id=update.effective_user.id)
+        except Exception:
+            ogg = None  # voice optional; never blocks text broadcast
+        results = await MessageRouter().broadcast(text, ogg)
+        if not results:
+            await update.message.reply_text("没有已启用的渠道（检查 CHANNELS_ENABLED）。")
+            return
+        summary = "\n".join(f"- {r.channel}: {'ok' if r.ok else 'FAIL ' + r.detail}" for r in results)
+        await update.message.reply_text("广播结果：\n" + summary)
+    finally:
+        cleanup_paths(ogg or "")
+
+
 async def on_voice_sample(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Receive an owner voice sample after /voice_set."""
     if not is_owner(update) or not context.user_data.get("awaiting_voice_sample"):
@@ -211,6 +286,11 @@ def build_application(token: str) -> Application:
     application.add_handler(CommandHandler("voice_status", on_voice_status))
     application.add_handler(CommandHandler("voice_delete", on_voice_delete))
     application.add_handler(CommandHandler("speak", on_speak))
+    # Owner-only channel commands.
+    application.add_handler(CommandHandler("channels", on_channels))
+    application.add_handler(CommandHandler("channel_status", on_channel_status))
+    application.add_handler(CommandHandler("channel_test", on_channel_test))
+    application.add_handler(CommandHandler("broadcast", on_broadcast))
     # Owner voice sample (after /voice_set).
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice_sample))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
