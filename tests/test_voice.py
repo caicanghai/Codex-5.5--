@@ -81,5 +81,4 @@ def test_command_routing_registers_handlers():
 
     app = build_application("123456:ABCDEF")
     handlers = app.handlers[0]
-    # start, help, voice_set, voice_status, voice_delete, speak, voice-sample, text
-    assert len(handlers) == 8
+    assert len(handlers) == 12

@@ -103,3 +103,20 @@ MIT
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yynxxxxx/Codex-5.5-codex-instruct-5.5&type=Date" />
   </a>
 </p>
+
+---
+
+## EIOS Multi-Channel Messaging (Phase 3)
+
+This repo also hosts **EIOS**, a Telegram-first evidence/voice bot with a unified
+multi-channel messaging provider layer (`app/messaging/`).
+
+- Channels (official APIs only): **Telegram**, **WeCom / 企业微信**, **WeChat
+  Official / 微信公众号**, **WhatsApp Business**. Each auto-disables until
+  configured. Priority: `telegram → wecom → wechat_official → whatsapp`.
+- Owner-only bot commands: `/channels`, `/channel_status`, `/channel_test <name>`, `/broadcast <text>`.
+- Voice fallback: Fish Audio → ElevenLabs → Edge-TTS.
+- Platform matrix: [`docs/MESSAGING_PLATFORM_MATRIX.md`](docs/MESSAGING_PLATFORM_MATRIX.md)
+- Config template: [`.env.example`](.env.example) · Deploy: [`DEPLOYMENT_REPORT.md`](DEPLOYMENT_REPORT.md)
+
+Run: `cp .env.example .env` (fill secrets on the server), then `docker compose up -d`.

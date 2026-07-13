@@ -21,6 +21,23 @@ def test_ingest_rejects_bad_scheme(monkeypatch):
     assert r.status_code == 400
 
 
+def test_whatsapp_webhook_verify_endpoint(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "whatsapp_verify_token", "vt")
+    client = _client(monkeypatch)
+    r = client.get(
+        "/webhook/whatsapp",
+        params={"hub.mode": "subscribe", "hub.verify_token": "vt", "hub.challenge": "123"},
+    )
+    assert r.status_code == 200 and r.text == "123"
+    r2 = client.get(
+        "/webhook/whatsapp",
+        params={"hub.mode": "subscribe", "hub.verify_token": "bad", "hub.challenge": "123"},
+    )
+    assert r2.status_code == 403
+
+
 def test_ingest_success(monkeypatch):
     async def fake_process(url, persist=True):
         return ProcessResult(id=1, url=url, title="T", summary="S", source="url")
