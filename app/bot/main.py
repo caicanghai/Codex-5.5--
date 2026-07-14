@@ -17,6 +17,7 @@ from telegram.ext import (
     filters,
 )
 
+from app import cache
 from app.config import settings
 from app.db import ensure_schema
 from app.messaging.registry import PRIORITY, all_providers, enabled_providers
@@ -64,6 +65,23 @@ def is_owner(update: Update) -> bool:
     return bool(owner) and user is not None and user.id == owner
 
 
+SYNC_KEY = "eios:sync_enabled"
+
+
+def sync_enabled() -> bool:
+    try:
+        return cache.get_client().get(SYNC_KEY) == "1"
+    except Exception:
+        return False
+
+
+def set_sync(on: bool) -> None:
+    try:
+        cache.get_client().set(SYNC_KEY, "1" if on else "0")
+    except Exception:
+        pass
+
+
 async def _send_voice_for(message, text: str, owner_id: int | None) -> None:
     """Generate cloned/fallback voice and send it. Never raises."""
     await message.chat.send_action(ChatAction.RECORD_VOICE)
@@ -76,6 +94,36 @@ async def _send_voice_for(message, text: str, owner_id: int | None) -> None:
     except Exception as exc:  # noqa: BLE001
         log.exception("voice generation failed")
         await message.reply_text(f"(Voice generation failed: {exc})")
+    finally:
+        cleanup_paths(ogg or "")
+
+
+async def _reply_and_maybe_sync(update: Update, message, text: str) -> None:
+    """Telegram voice reply to the requester; if owner + sync on, fan out the
+    same text+voice to all other enabled channels. Voice generated ONCE, then
+    converted per platform inside each provider. One channel failure is isolated.
+    """
+    owner = is_owner(update)
+    ogg = None
+    try:
+        try:
+            ogg, _prov = await voice_service.synthesize(
+                text, owner_id=update.effective_user.id if owner else None
+            )
+        except Exception:
+            ogg = None  # voice optional; text already delivered
+        if ogg:
+            await message.chat.send_action(ChatAction.RECORD_VOICE)
+            with open(ogg, "rb") as voice:
+                await message.reply_voice(voice=voice)
+        if owner and sync_enabled():
+            others = [p for p in enabled_providers() if p.name != "telegram"]
+            if others:
+                results = await MessageRouter(providers=others).broadcast(text, ogg)
+                report = "\n".join(
+                    f"- {r.channel}: {'ok' if r.ok else 'FAIL ' + r.detail}" for r in results
+                )
+                await message.reply_text("🔁 同步投递：\n" + report)
     finally:
         cleanup_paths(ogg or "")
 
@@ -197,6 +245,21 @@ async def on_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         cleanup_paths(ogg or "")
 
 
+async def on_sync_on(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    set_sync(True)
+    chans = ", ".join(p.name for p in enabled_providers()) or "(仅 telegram)"
+    await update.message.reply_text(f"✅ 同步已开启。启用渠道：{chans}")
+
+
+async def on_sync_off(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if not is_owner(update):
+        return
+    set_sync(False)
+    await update.message.reply_text("⏹️ 同步已关闭（仅回复 Telegram）。")
+
+
 async def on_voice_sample(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Receive an owner voice sample after /voice_set."""
     if not is_owner(update) or not context.user_data.get("awaiting_voice_sample"):
@@ -261,8 +324,7 @@ async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception:
         await status.edit_text(f"{result.title}\n\n{result.summary}")
 
-    owner_id = update.effective_user.id if is_owner(update) else None
-    await _send_voice_for(message, result.summary, owner_id)
+    await _reply_and_maybe_sync(update, message, result.summary)
 
 
 def _md(text: str) -> str:
@@ -291,6 +353,8 @@ def build_application(token: str) -> Application:
     application.add_handler(CommandHandler("channel_status", on_channel_status))
     application.add_handler(CommandHandler("channel_test", on_channel_test))
     application.add_handler(CommandHandler("broadcast", on_broadcast))
+    application.add_handler(CommandHandler("sync_on", on_sync_on))
+    application.add_handler(CommandHandler("sync_off", on_sync_off))
     # Owner voice sample (after /voice_set).
     application.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice_sample))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))

@@ -81,4 +81,26 @@ def test_command_routing_registers_handlers():
 
     app = build_application("123456:ABCDEF")
     handlers = app.handlers[0]
-    assert len(handlers) == 12
+    assert len(handlers) == 14
+
+
+def test_sync_toggle(monkeypatch):
+    from app.bot import main as bot
+
+    class _R:
+        def __init__(self):
+            self.v = {}
+
+        def get(self, k):
+            return self.v.get(k)
+
+        def set(self, k, val, ex=None):
+            self.v[k] = val
+
+    r = _R()
+    monkeypatch.setattr("app.bot.main.cache.get_client", lambda: r)
+    assert bot.sync_enabled() is False
+    bot.set_sync(True)
+    assert bot.sync_enabled() is True
+    bot.set_sync(False)
+    assert bot.sync_enabled() is False

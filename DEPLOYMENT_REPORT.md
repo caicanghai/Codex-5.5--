@@ -35,3 +35,30 @@ cd eios && git pull origin claude/eios-repository-foundation-hoi3u8 && bash scri
 ### Notes
 
 Real platform APIs are validated only via mock tests here (no live keys). No claim of a live API connection is made until keys are configured on the VPS.
+
+## Phase 4 — Synchronized voice delivery + real activation
+
+Status: **code complete, mock-tested. VPS deployment + real channel activation NOT executed from this environment** (no SSH egress, no docker daemon, no live keys). Deployment is done by the owner via the update command below.
+
+### Delivered
+
+- Synchronized delivery: authorized (owner) message → DeepSeek summary → text → voice generated **once** (Fish → ElevenLabs → Edge) → same text+voice fanned out to all enabled channels; per-platform conversion inside providers (Telegram/WhatsApp OGG/Opus, WeCom/WeChat AMR). One channel failure never blocks others; a delivery report is sent back to the Telegram owner.
+- Toggle via `/sync_on` and `/sync_off` (owner-only, state in Redis). When off → Telegram-only reply (unchanged).
+- Owner commands present: `/channels`, `/channel_status`, `/channel_test telegram|wecom|wechat|whatsapp`, `/sync_on`, `/sync_off`, `/broadcast <text>`, `/speak <text>`.
+
+### Tests — 33 passed
+
+Adds sync toggle + 14-handler routing; retains all Phase 3 mock coverage.
+
+### Real channel status (honest)
+
+Not verified here — no live API request has succeeded from this sandbox. Real status becomes "connected" only after the owner sets credentials on the VPS and a real request succeeds (`/channel_test <name>`).
+
+### Deploy / rollback (run on VPS)
+
+```bash
+# update
+cd eios && git pull origin claude/eios-repository-foundation-hoi3u8 && bash scripts/ops/update.sh
+# rollback to previous stable (Phase 3)
+cd eios && git checkout f6311bc && bash scripts/ops/update.sh
+```
