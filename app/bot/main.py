@@ -22,6 +22,7 @@ from app.config import settings
 from app.db import ensure_schema
 from app.messaging.registry import PRIORITY, all_providers, enabled_providers
 from app.messaging.service import MessageRouter
+from app.pipeline.chat import chat_reply
 from app.pipeline.ingest import extract_url
 from app.pipeline.service import process_url
 from app.voice.service import (
@@ -39,9 +40,9 @@ log = logging.getLogger("eios.bot")
 HEARTBEAT_FILE = "/tmp/bot_alive"
 
 WELCOME = (
-    "👋 EIOS MVP bot.\n\n"
-    "Send me a URL or an RSS feed link. I will read it, summarize it, "
-    "and send you a voice message of the summary."
+    "👋 EIOS bot.\n\n"
+    "• 直接发消息（如“晚上好”）→ AI 回复 + 原生语音。\n"
+    "• 发 URL / RSS 链接 → 摘要 + 语音。"
 )
 
 
@@ -303,28 +304,33 @@ async def on_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if not message or not message.text:
         return
 
-    url = extract_url(message.text)
-    if not url:
-        await message.reply_text("Please send a valid URL or RSS link (http/https).")
-        return
-
     await message.chat.send_action(ChatAction.TYPING)
-    status = await message.reply_text("🔎 Reading and summarizing…")
+    url = extract_url(message.text)
 
-    try:
-        result = await process_url(url)
-    except Exception as exc:  # noqa: BLE001
-        log.exception("processing failed")
-        await status.edit_text(f"⚠️ Could not process that link: {exc}")
-        return
+    if url:
+        # URL/RSS → summary
+        status = await message.reply_text("🔎 Reading and summarizing…")
+        try:
+            result = await process_url(url)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("processing failed")
+            await status.edit_text(f"⚠️ Could not process that link: {exc}")
+            return
+        header = f"*{_md(result.title)}*\n\n{_md(result.summary)}"
+        try:
+            await status.edit_text(header, parse_mode="Markdown")
+        except Exception:
+            await status.edit_text(f"{result.title}\n\n{result.summary}")
+        reply_text = result.summary
+    else:
+        # Plain text → AI chat reply (DeepSeek / OpenAI-compatible)
+        reply_text = await chat_reply(message.text)
+        try:
+            await message.reply_text(reply_text)
+        except Exception:
+            pass
 
-    header = f"*{_md(result.title)}*\n\n{_md(result.summary)}"
-    try:
-        await status.edit_text(header, parse_mode="Markdown")
-    except Exception:
-        await status.edit_text(f"{result.title}\n\n{result.summary}")
-
-    await _reply_and_maybe_sync(update, message, result.summary)
+    await _reply_and_maybe_sync(update, message, reply_text)
 
 
 def _md(text: str) -> str:
