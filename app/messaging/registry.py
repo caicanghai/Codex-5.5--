@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from app.config import settings
 from app.messaging.base import MessagingProvider
+from app.messaging.openclaw import OpenClawProvider
 from app.messaging.telegram import TelegramProvider
 from app.messaging.wechat_official import WeChatOfficialProvider
 from app.messaging.wecom import WeComProvider
 from app.messaging.whatsapp import WhatsAppProvider
 
 # Fixed delivery priority order.
-PRIORITY = ["telegram", "wecom", "wechat_official", "whatsapp"]
+PRIORITY = ["telegram", "wecom", "wechat_official", "whatsapp", "openclaw"]
 
 
 def all_providers() -> dict[str, MessagingProvider]:
@@ -19,6 +20,7 @@ def all_providers() -> dict[str, MessagingProvider]:
         "wecom": WeComProvider(),
         "wechat_official": WeChatOfficialProvider(),
         "whatsapp": WhatsAppProvider(),
+        "openclaw": OpenClawProvider(),
     }
 
 

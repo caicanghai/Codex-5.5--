@@ -82,6 +82,17 @@ class Settings(BaseSettings):
     whatsapp_recipient: str = ""
     whatsapp_base_url: str = "https://graph.facebook.com/v20.0"
 
+    # OpenClaw (openclaw-weixin) — external WeChat bridge provider
+    openclaw_enabled: bool = False
+    openclaw_base_url: str = ""
+    openclaw_api_key: str = ""
+    openclaw_model: str = "openclaw-weixin"
+    openclaw_session: str = ""
+    openclaw_target: str = ""
+    openclaw_timeout_seconds: float = 30.0
+    openclaw_retry_attempts: int = 3
+    openclaw_stream: bool = False
+
     # Router
     channel_retry_attempts: int = 2
     delivery_dedup_ttl_seconds: int = 3600
