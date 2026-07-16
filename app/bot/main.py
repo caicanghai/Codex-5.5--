@@ -341,12 +341,24 @@ def _md(text: str) -> str:
 
 
 async def _post_init(app: Application) -> None:
+    # Ensure long polling is not blocked by a stale webhook (409 Conflict).
+    try:
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        log.info("cleared any stale webhook; long polling active")
+    except Exception:
+        log.exception("delete_webhook failed (continuing)")
     app.create_task(_heartbeat_loop())
+
+
+async def _on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Never let a handler exception cause silent no-reply; log it.
+    log.error("handler error: %s", context.error, exc_info=context.error)
 
 
 def build_application(token: str) -> Application:
     """Build the bot Application with handlers wired (no network I/O)."""
     application = Application.builder().token(token).post_init(_post_init).build()
+    application.add_error_handler(_on_error)
     application.add_handler(CommandHandler("start", on_start))
     application.add_handler(CommandHandler("help", on_start))
     # Owner-only voice commands.
@@ -371,12 +383,16 @@ def main() -> None:
     if not settings.telegram_bot_token:
         raise SystemExit("TELEGRAM_BOT_TOKEN is not set — cannot start the bot.")
 
-    ensure_schema()
+    # DB init must NOT prevent the bot from starting/replying (item 6).
+    try:
+        ensure_schema()
+    except Exception:
+        log.exception("ensure_schema failed at startup (continuing; DB features degraded)")
     _touch_heartbeat()
 
     application = build_application(settings.telegram_bot_token)
     log.info("EIOS bot starting (long polling)…")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
 if __name__ == "__main__":

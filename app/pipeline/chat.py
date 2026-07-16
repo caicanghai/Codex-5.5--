@@ -34,6 +34,7 @@ async def chat_reply(text: str) -> str:
                 if content:
                     return content
         except Exception:
-            pass
-    # Offline fallback: acknowledge so the voice pipeline still has text.
-    return f"收到：{text[:200]}"
+            # AI failure must never cause silence — clear temporary fallback.
+            return "EIOS online. AI provider is temporarily unavailable."
+    # No AI key configured: still reply (never silent).
+    return f"EIOS online. 收到：{text[:200]}"

@@ -7,3 +7,5 @@ def test_build_application_wires_handlers():
     # channel_test, broadcast, voice-sample, text
     handlers = app.handlers[0]
     assert len(handlers) == 14
+    # An error handler must be registered so handler exceptions never go silent.
+    assert len(app.error_handlers) >= 1
