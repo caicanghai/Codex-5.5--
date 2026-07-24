@@ -13,12 +13,12 @@ Codex MD 指令文件自动部署脚本
   python codex-md-deploy.py --dry-run                 # 预览，不实际修改
 """
 
-import os
-import sys
-import shutil
 import argparse
-from pathlib import Path
+import os
+import shutil
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # ─── 内置 GPT-5.5 破限指令内容 ─────────────────────────────────────────────
 BUILTIN_GPT55_MD = r"""You are Codex, based on GPT-5.5, running as a coding agent in the Codex CLI on a user's computer.
@@ -54,8 +54,6 @@ BEGIN."""
 
 def find_codex_dirs():
     """扫描系统中所有可能的 .codex 目录"""
-    candidates = []
-
     # Windows
     if os.name == "nt":
         userprofile = os.environ.get("USERPROFILE", "")
@@ -188,7 +186,6 @@ def deploy(args):
         print("\n[DRY RUN] 预览模式，不实际修改。")
         for d in codex_dirs:
             md_dest = Path(d) / md_filename
-            config = Path(d) / "config.toml"
             print(f"\n  目标: {d}")
             print(f"    → 写入 MD: {md_dest}")
             print(f"    → 配置项: model_instructions_file = \"./{md_filename}\"")
@@ -215,7 +212,7 @@ def deploy(args):
         if changed:
             print(f"  [配置] 已添加 model_instructions_file = \"./{md_filename}\"")
         else:
-            print(f"  [配置] model_instructions_file 已存在且值相同，跳过")
+            print("  [配置] model_instructions_file 已存在且值相同，跳过")
 
     print(f"\n[完成] 已部署到 {len(codex_dirs)} 个 Codex 安装。")
 
