@@ -47,7 +47,8 @@ WELCOME = (
     "👋 EIOS bot.\n\n"
     "• 直接发消息（如“晚上好”）→ AI 回复 + 原生语音。\n"
     "• 发 URL / RSS 链接 → 摘要 + 语音。\n"
-    "• /voice_list 看音色、/voice_pick <编号> 选定；/voice_add 随时加新音色。"
+    "• /voice_list 看音色、/voice_pick <编号> 选定；/voice_add 随时加新音色。\n"
+    "• /whoami 查看你的 Telegram ID（填 TELEGRAM_OWNER_ID 用）。"
 )
 
 
@@ -137,6 +138,20 @@ async def _reply_and_maybe_sync(update: Update, message, text: str) -> None:
 async def on_start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message:
         await update.message.reply_text(WELCOME)
+
+
+async def on_whoami(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """Reply with the sender's own numeric Telegram id — auto-discovers
+    TELEGRAM_OWNER_ID without needing a third-party bot. Only reveals the
+    caller's own id, so it is open to anyone (no owner gate)."""
+    if not update.message or not update.effective_user:
+        return
+    uid = update.effective_user.id
+    await update.message.reply_text(
+        f"你的 Telegram 数字 ID：`{uid}`\n"
+        f"填入 .env 的 TELEGRAM_OWNER_ID={uid}",
+        parse_mode="Markdown",
+    )
 
 
 async def on_voice_set(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -426,6 +441,7 @@ def build_application(token: str) -> Application:
     application.add_error_handler(_on_error)
     application.add_handler(CommandHandler("start", on_start))
     application.add_handler(CommandHandler("help", on_start))
+    application.add_handler(CommandHandler("whoami", on_whoami))
     # Owner-only voice commands.
     application.add_handler(CommandHandler("voice_set", on_voice_set))
     application.add_handler(CommandHandler("voice_status", on_voice_status))
