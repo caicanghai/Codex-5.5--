@@ -31,7 +31,9 @@ from app.voice.service import (
     validate_sample,
     voice_service,
 )
+from app.voice.templates import add_custom as add_voice_template
 from app.voice.templates import by_key as voice_template_by_key
+from app.voice.templates import remove_custom as remove_voice_template
 from app.voice.templates import render_list as render_voice_list
 
 logging.basicConfig(
@@ -45,7 +47,7 @@ WELCOME = (
     "👋 EIOS bot.\n\n"
     "• 直接发消息（如“晚上好”）→ AI 回复 + 原生语音。\n"
     "• 发 URL / RSS 链接 → 摘要 + 语音。\n"
-    "• /voice_list 挑选好听的音色，/voice_pick <编号> 选定，之后所有回复都用它。"
+    "• /voice_list 看音色、/voice_pick <编号> 选定；/voice_add 随时加新音色。"
 )
 
 
@@ -185,6 +187,44 @@ async def on_voice_pick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     voice_service.save_profile(update.effective_user.id, tpl.provider, tpl.voice_id)
     await update.message.reply_text(
         f"✅ 已选择音色：{tpl.label}（{tpl.lang}）。\n发一句话试试，之后所有回复都会用这个声音。"
+    )
+
+
+async def on_voice_add(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Add a new voice template at runtime: /voice_add <provider> <voice_id> <name>."""
+    if not is_owner(update):
+        return
+    args = context.args or []
+    if len(args) < 2:
+        await update.message.reply_text(
+            "用法：/voice_add <fish|elevenlabs|edge> <voice_id> <名字>\n"
+            "例：/voice_add fish c51b2779becd499b81b635af3a5defef 我的音色"
+        )
+        return
+    provider, voice_id, name = args[0], args[1], " ".join(args[2:])
+    try:
+        tpl = add_voice_template(provider, voice_id, label=name)
+    except ValueError as exc:
+        await update.message.reply_text(f"添加失败：{exc}")
+        return
+    await update.message.reply_text(
+        f"✅ 已添加音色 `{tpl.key}` — {tpl.label}。\n用 /voice_pick {tpl.key} 选它。",
+        parse_mode="Markdown",
+    )
+
+
+async def on_voice_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Remove a custom voice template: /voice_remove <key>."""
+    if not is_owner(update):
+        return
+    key = (context.args[0] if context.args else "").strip()
+    if not key:
+        await update.message.reply_text("用法：/voice_remove <编号>（仅能删自己添加的）。")
+        return
+    removed = remove_voice_template(key)
+    await update.message.reply_text(
+        f"已删除音色 `{key}`。" if removed else f"未找到可删除的自定义音色 `{key}`（内置模板不可删）。",
+        parse_mode="Markdown",
     )
 
 
@@ -392,6 +432,8 @@ def build_application(token: str) -> Application:
     application.add_handler(CommandHandler("voice_delete", on_voice_delete))
     application.add_handler(CommandHandler("voice_list", on_voice_list))
     application.add_handler(CommandHandler("voice_pick", on_voice_pick))
+    application.add_handler(CommandHandler("voice_add", on_voice_add))
+    application.add_handler(CommandHandler("voice_remove", on_voice_remove))
     application.add_handler(CommandHandler("speak", on_speak))
     # Owner-only channel commands.
     application.add_handler(CommandHandler("channels", on_channels))

@@ -18,6 +18,34 @@ def test_render_list_mentions_pick_command():
     assert "xiaoxiao" in text
 
 
+def test_add_custom_rejects_bad_provider():
+    import pytest
+
+    with pytest.raises(ValueError):
+        templates.add_custom("not-a-provider", "vid", "name")
+
+
+def test_add_custom_rejects_empty_voice_id():
+    import pytest
+
+    with pytest.raises(ValueError):
+        templates.add_custom("fish", "   ", "name")
+
+
+def test_gen_key_avoids_collision_with_builtins(monkeypatch):
+    # fish1 is a built-in; a new fish voice must get the next free key.
+    monkeypatch.setattr(templates, "_custom_rows", lambda: [])
+    assert templates._gen_key("fish") == "fish2"
+
+
+def test_all_templates_merges_custom(monkeypatch):
+    extra = templates.VoiceTemplate("mine", "fish", "abc123", "我的音色", "Fish")
+    monkeypatch.setattr(templates, "_custom_rows", lambda: [extra])
+    keys = {t.key for t in templates.all_templates()}
+    assert "mine" in keys and "xiaoxiao" in keys
+    assert templates.by_key("MINE").voice_id == "abc123"
+
+
 def test_picked_provider_is_tried_first(monkeypatch):
     """A profile selecting 'edge' must make edge win even though fish is first
     in the fallback order."""

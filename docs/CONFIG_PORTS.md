@@ -44,6 +44,8 @@
 | `TTS_VOICE` | Edge 免密钥兜底音色，如 `zh-CN-XiaoxiaoNeural` |
 | `/voice_list` | 在 Telegram 里浏览可选音色模板 |
 | `/voice_pick <编号>` | 选定音色（如 `fish1`、`xiaoxiao`） |
+| `/voice_add <provider> <voice_id> <名字>` | 运行时新增音色（无需改代码），如 `/voice_add fish <modelId> 我的音色` |
+| `/voice_remove <编号>` | 删除自己添加的音色（内置模板不可删） |
 | `/voice_set` | 上传语音样本克隆你自己的声音（Fish） |
 
 **内置音色模板**（`/voice_list` 可见，`app/voice/templates.py` 里维护）：
