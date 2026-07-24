@@ -53,6 +53,7 @@
 | 编号 | 提供方 | 说明 |
 |---|---|---|
 | `fish1` | fish | Fish 精选音色①（需配 `FISH_AUDIO_API_KEY`） |
+| `fish2` | fish | 万万雪饼的声音（需配 `FISH_AUDIO_API_KEY`） |
 | `xiaoxiao` / `xiaoyi` | edge | 温柔 / 亲切女声（普通话） |
 | `yunxi` / `yunyang` / `yunjian` | edge | 沉稳 / 专业 / 浑厚男声（普通话） |
 | `xiaobei` | edge | 东北女声（方言） |

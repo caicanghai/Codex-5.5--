@@ -25,8 +25,9 @@ class VoiceTemplate:
 
 # Order = display order in /voice_list.
 TEMPLATES: list[VoiceTemplate] = [
-    # Owner-provided Fish Audio model (needs FISH_AUDIO_API_KEY on the VPS).
+    # Owner-provided Fish Audio models (need FISH_AUDIO_API_KEY on the VPS).
     VoiceTemplate("fish1", "fish", "c51b2779becd499b81b635af3a5defef", "Fish 精选音色①", "Fish"),
+    VoiceTemplate("fish2", "fish", "c18df03141394a4f91a3798d96f917de", "万万雪饼的声音", "Fish"),
     VoiceTemplate("xiaoxiao", "edge", "zh-CN-XiaoxiaoNeural", "晓晓 · 温柔女声", "普通话"),
     VoiceTemplate("xiaoyi", "edge", "zh-CN-XiaoyiNeural", "晓伊 · 亲切女声", "普通话"),
     VoiceTemplate("yunxi", "edge", "zh-CN-YunxiNeural", "云希 · 沉稳男声", "普通话"),

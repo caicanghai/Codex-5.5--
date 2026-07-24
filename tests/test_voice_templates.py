@@ -33,9 +33,9 @@ def test_add_custom_rejects_empty_voice_id():
 
 
 def test_gen_key_avoids_collision_with_builtins(monkeypatch):
-    # fish1 is a built-in; a new fish voice must get the next free key.
+    # fish1/fish2 are built-ins; a new fish voice must get the next free key.
     monkeypatch.setattr(templates, "_custom_rows", lambda: [])
-    assert templates._gen_key("fish") == "fish2"
+    assert templates._gen_key("fish") == "fish3"
 
 
 def test_all_templates_merges_custom(monkeypatch):
