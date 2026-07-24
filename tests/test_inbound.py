@@ -89,13 +89,17 @@ def test_whatsapp_inbound_schedules_reply(monkeypatch):
     assert seen and seen[0][0] == "whatsapp" and seen[0][2] == "晚上好"
 
 
-def test_wechat_inbound_passive_reply(monkeypatch):
+def test_wechat_inbound_plaintext_routes_to_reply(monkeypatch):
+    """Plaintext-mode WeChat message is routed to reply_and_deliver (text+voice)."""
     monkeypatch.setattr(api.WeChatOfficialProvider, "verify_webhook", lambda self, *a: True)
 
-    async def _chat(t):
-        return "你好回复"
+    seen = []
 
-    monkeypatch.setattr(api, "chat_reply", _chat)
+    async def fake_reply(channel, sender, text, **kw):
+        seen.append((channel, sender, text))
+        return text
+
+    monkeypatch.setattr(api, "reply_and_deliver", fake_reply)
     client = _client(monkeypatch)
     xml = (
         "<xml><ToUserName><![CDATA[gh_1]]></ToUserName>"
@@ -103,8 +107,6 @@ def test_wechat_inbound_passive_reply(monkeypatch):
         "<MsgType><![CDATA[text]]></MsgType>"
         "<Content><![CDATA[你好]]></Content></xml>"
     )
-    r = client.post(
-        "/webhook/wechat?signature=s&timestamp=t&nonce=n", content=xml
-    )
-    assert r.status_code == 200
-    assert "你好回复" in r.text and "openid_1" in r.text
+    r = client.post("/webhook/wechat?signature=s&timestamp=t&nonce=n", content=xml)
+    assert r.status_code == 200 and r.text == "success"
+    assert seen == [("wechat_official", "openid_1", "你好")]

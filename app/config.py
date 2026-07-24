@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     wecom_target_party: str = ""
     wecom_target_tag: str = ""
     wecom_base_url: str = "https://qyapi.weixin.qq.com"
+    # Inbound callback (接收消息) — required only to RECEIVE & reply on WeCom.
+    wecom_token: str = ""
+    wecom_aes_key: str = ""  # 43-char EncodingAESKey
 
     # WeChat Official Account (微信公众号)
     wechat_official_enabled: bool = False

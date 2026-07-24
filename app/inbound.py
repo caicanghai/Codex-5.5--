@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 
+from app.config import settings
 from app.messaging.registry import all_providers
 from app.pipeline.chat import chat_reply
 from app.voice.service import cleanup_paths, voice_service
@@ -35,7 +36,10 @@ async def reply_and_deliver(channel: str, sender: str, text: str, *, with_voice:
     if with_voice:
         ogg = None
         try:
-            ogg, _prov = await voice_service.synthesize(reply)
+            # Use the owner's picked voice template/clone for every channel.
+            ogg, _prov = await voice_service.synthesize(
+                reply, owner_id=settings.telegram_owner_id or None
+            )
             await provider.send_voice(sender, ogg)
         except Exception:  # noqa: BLE001
             log.exception("inbound %s: voice delivery failed (text already sent)", channel)

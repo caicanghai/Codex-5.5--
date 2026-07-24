@@ -12,6 +12,17 @@ import time
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
 from app.messaging.media import to_amr
+from app.messaging.wxcrypt import WXBizMsgCrypt
+
+
+def wechat_encryption_configured() -> bool:
+    """True when the OA is in encrypted/compatible mode (AES key present)."""
+    return bool(settings.wechat_token and settings.wechat_aes_key and settings.wechat_app_id)
+
+
+def wechat_crypter() -> WXBizMsgCrypt:
+    """Build the WXBizMsgCrypt for WeChat OA inbound (receive_id = AppID)."""
+    return WXBizMsgCrypt(settings.wechat_token, settings.wechat_aes_key, settings.wechat_app_id)
 
 
 def verify_signature(token: str, signature: str, timestamp: str, nonce: str) -> bool:

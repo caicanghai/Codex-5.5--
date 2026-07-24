@@ -10,3 +10,4 @@ beautifulsoup4>=4.12
 edge-tts>=6.1
 python-telegram-bot>=21,<22
 pydantic-settings>=2.2
+cryptography>=42  # WXBizMsgCrypt AES for WeChat OA / WeCom encrypted callbacks

@@ -55,10 +55,18 @@ class VoiceService:
 
     # ---- synthesis with fallback ----
     async def synthesize(self, text: str, owner_id: int | None = None) -> tuple[str, str]:
-        """Return (ogg_path, provider_name). Tries fish -> elevenlabs -> edge."""
+        """Return (ogg_path, provider_name).
+
+        If the owner has picked a voice (template or clone), that provider is
+        tried FIRST so the chosen voice actually wins; otherwise the fixed
+        fish -> elevenlabs -> edge fallback order applies.
+        """
         profile = self.get_profile(owner_id) if owner_id else None
+        order = list(FALLBACK_ORDER)
+        if profile and profile.provider in self.providers:
+            order = [profile.provider] + [n for n in order if n != profile.provider]
         last_err: Exception | None = None
-        for name in FALLBACK_ORDER:
+        for name in order:
             provider = self.providers[name]
             voice_id = None
             if profile and profile.provider == name and profile.voice_id:

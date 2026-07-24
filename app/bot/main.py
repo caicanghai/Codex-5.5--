@@ -31,6 +31,8 @@ from app.voice.service import (
     validate_sample,
     voice_service,
 )
+from app.voice.templates import by_key as voice_template_by_key
+from app.voice.templates import render_list as render_voice_list
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s"
@@ -42,7 +44,8 @@ HEARTBEAT_FILE = "/tmp/bot_alive"
 WELCOME = (
     "👋 EIOS bot.\n\n"
     "• 直接发消息（如“晚上好”）→ AI 回复 + 原生语音。\n"
-    "• 发 URL / RSS 链接 → 摘要 + 语音。"
+    "• 发 URL / RSS 链接 → 摘要 + 语音。\n"
+    "• /voice_list 挑选好听的音色，/voice_pick <编号> 选定，之后所有回复都用它。"
 )
 
 
@@ -160,7 +163,29 @@ async def on_voice_delete(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     if not is_owner(update):
         return
     removed = voice_service.delete_profile(update.effective_user.id)
-    await update.message.reply_text("已删除克隆语音配置。" if removed else "没有可删除的配置。")
+    await update.message.reply_text("已删除语音配置，恢复默认回退音色。" if removed else "没有可删除的配置。")
+
+
+async def on_voice_list(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """List selectable voice templates."""
+    if not is_owner(update):
+        return
+    await update.message.reply_text(render_voice_list(), parse_mode="Markdown")
+
+
+async def on_voice_pick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Pick a voice template by key; persist it as the owner's voice."""
+    if not is_owner(update):
+        return
+    key = (context.args[0] if context.args else "").strip()
+    tpl = voice_template_by_key(key)
+    if not tpl:
+        await update.message.reply_text("未找到该模板。发送 /voice_list 查看可选编号。")
+        return
+    voice_service.save_profile(update.effective_user.id, tpl.provider, tpl.voice_id)
+    await update.message.reply_text(
+        f"✅ 已选择音色：{tpl.label}（{tpl.lang}）。\n发一句话试试，之后所有回复都会用这个声音。"
+    )
 
 
 async def on_speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -365,6 +390,8 @@ def build_application(token: str) -> Application:
     application.add_handler(CommandHandler("voice_set", on_voice_set))
     application.add_handler(CommandHandler("voice_status", on_voice_status))
     application.add_handler(CommandHandler("voice_delete", on_voice_delete))
+    application.add_handler(CommandHandler("voice_list", on_voice_list))
+    application.add_handler(CommandHandler("voice_pick", on_voice_pick))
     application.add_handler(CommandHandler("speak", on_speak))
     # Owner-only channel commands.
     application.add_handler(CommandHandler("channels", on_channels))

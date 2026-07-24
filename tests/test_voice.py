@@ -81,7 +81,7 @@ def test_command_routing_registers_handlers():
 
     app = build_application("123456:ABCDEF")
     handlers = app.handlers[0]
-    assert len(handlers) == 14
+    assert len(handlers) == 16
 
 
 def test_sync_toggle(monkeypatch):

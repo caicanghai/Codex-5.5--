@@ -8,6 +8,17 @@ import time
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
 from app.messaging.media import to_amr
+from app.messaging.wxcrypt import WXBizMsgCrypt
+
+
+def wecom_callback_configured() -> bool:
+    """True when inbound (receive) callback credentials are present."""
+    return bool(settings.wecom_token and settings.wecom_aes_key and settings.wecom_corp_id)
+
+
+def wecom_crypter() -> WXBizMsgCrypt:
+    """Build the WXBizMsgCrypt for WeCom inbound (receive_id = CorpID)."""
+    return WXBizMsgCrypt(settings.wecom_token, settings.wecom_aes_key, settings.wecom_corp_id)
 
 
 class WeComProvider(MessagingProvider):

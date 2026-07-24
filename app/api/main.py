@@ -12,9 +12,14 @@ from sqlalchemy import text
 from app import cache
 from app.db import SessionLocal, ensure_schema
 from app.inbound import reply_and_deliver
-from app.messaging.wechat_official import WeChatOfficialProvider, passive_text_reply
+from app.messaging.wechat_official import (
+    WeChatOfficialProvider,
+    wechat_crypter,
+    wechat_encryption_configured,
+)
+from app.messaging.wecom import wecom_callback_configured, wecom_crypter
 from app.messaging.whatsapp import verify_webhook as whatsapp_verify_webhook
-from app.pipeline.chat import chat_reply
+from app.messaging.wxcrypt import WXCryptError
 from app.pipeline.service import process_url
 
 
@@ -117,21 +122,73 @@ def wechat_verify(request: Request):
 
 
 @app.post("/webhook/wechat")
-async def wechat_receive(request: Request):
+async def wechat_receive(request: Request, background: BackgroundTasks):
+    """Inbound WeChat OA message -> AI reply + native voice (async custom send).
+
+    Supports both plaintext (明文) and encrypted (安全/兼容) modes. The reply is
+    pushed asynchronously via the customer-service API so it can carry a real
+    voice message, not just passive text.
+    """
     q = request.query_params
     provider = WeChatOfficialProvider()
     if not provider.verify_webhook(q.get("signature", ""), q.get("timestamp", ""), q.get("nonce", "")):
         raise HTTPException(status_code=403, detail="signature mismatch")
     raw = (await request.body()).decode(errors="ignore")
-    msg = _parse_wechat_xml(raw)
-    if msg.get("MsgType") == "text" and msg.get("Content"):
-        reply = await chat_reply(msg["Content"])
-        xml = passive_text_reply(msg.get("FromUserName", ""), msg.get("ToUserName", ""), reply)
-        return Response(content=xml, media_type="application/xml")
+
+    # Encrypted mode: unwrap the <Encrypt> body to the inner plaintext XML.
+    if ("<Encrypt>" in raw or q.get("encrypt_type") == "aes") and wechat_encryption_configured():
+        try:
+            raw = wechat_crypter().decrypt_message(
+                raw, q.get("msg_signature", ""), q.get("timestamp", ""), q.get("nonce", "")
+            )
+        except WXCryptError:
+            raise HTTPException(status_code=403, detail="decrypt failed") from None
+
+    msg = _parse_channel_xml(raw)
+    if msg.get("MsgType") == "text" and msg.get("Content") and msg.get("FromUserName"):
+        background.add_task(
+            reply_and_deliver, "wechat_official", msg["FromUserName"], msg["Content"]
+        )
     return Response(content="success", media_type="text/plain")
 
 
-def _parse_wechat_xml(raw: str) -> dict:
+@app.get("/webhook/wecom")
+def wecom_verify(request: Request):
+    """WeCom URL verification: decrypt echostr and echo the plaintext back."""
+    if not wecom_callback_configured():
+        raise HTTPException(status_code=503, detail="wecom callback not configured")
+    q = request.query_params
+    try:
+        plain = wecom_crypter().verify_url(
+            q.get("msg_signature", ""), q.get("timestamp", ""),
+            q.get("nonce", ""), q.get("echostr", ""),
+        )
+    except WXCryptError:
+        raise HTTPException(status_code=403, detail="verification failed") from None
+    return Response(content=plain, media_type="text/plain")
+
+
+@app.post("/webhook/wecom")
+async def wecom_receive(request: Request, background: BackgroundTasks):
+    """Inbound WeCom message (always encrypted) -> AI reply + native voice."""
+    if not wecom_callback_configured():
+        raise HTTPException(status_code=503, detail="wecom callback not configured")
+    q = request.query_params
+    raw = (await request.body()).decode(errors="ignore")
+    try:
+        inner = wecom_crypter().decrypt_message(
+            raw, q.get("msg_signature", ""), q.get("timestamp", ""), q.get("nonce", "")
+        )
+    except WXCryptError:
+        raise HTTPException(status_code=403, detail="decrypt failed") from None
+    msg = _parse_channel_xml(inner)
+    if msg.get("MsgType") == "text" and msg.get("Content") and msg.get("FromUserName"):
+        background.add_task(reply_and_deliver, "wecom", msg["FromUserName"], msg["Content"])
+    return Response(content="", media_type="text/plain")
+
+
+def _parse_channel_xml(raw: str) -> dict:
+    """Parse a WeChat/WeCom callback XML body into a flat tag->text dict."""
     out: dict[str, str] = {}
     try:
         root = ElementTree.fromstring(raw)
