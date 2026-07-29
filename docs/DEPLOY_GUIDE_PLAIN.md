@@ -70,11 +70,11 @@ git checkout claude/eios-repository-foundation-hoi3u8
 cp .env.example .env
 ```
 
-然后把你的 Telegram token 写进去（**整段复制**，token 已经是你的了）：
+然后把你的 Telegram token 写进去（把 `你的BOT_TOKEN` 换成从 @BotFather 拿到的那串，**不要把真 token 提交到任何代码库**）：
 
 ```bash
 cat >> .env <<'EOF'
-TELEGRAM_BOT_TOKEN=8686307651:AAHcUyVBcjIRyqsLUJyaU1Bd0_TXO579YqQ
+TELEGRAM_BOT_TOKEN=你的BOT_TOKEN
 EOF
 ```
 
