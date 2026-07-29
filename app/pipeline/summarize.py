@@ -8,6 +8,7 @@ from collections import Counter
 import httpx
 
 from app.config import settings
+from app.prompts import SUMMARY_SYSTEM_PROMPT, summary_user_prompt
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 _WORD = re.compile(r"[A-Za-z0-9']+")
@@ -50,11 +51,7 @@ def extractive_summary(text: str, max_sentences: int) -> str:
 
 
 async def _ai_summary(text: str) -> str:
-    prompt = (
-        "Summarize the following article in at most "
-        f"{settings.summary_sentences} clear sentences. "
-        "Be factual and concise.\n\n" + text[:8000]
-    )
+    prompt = summary_user_prompt(text, settings.summary_sentences)
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.ai_base_url.rstrip('/')}/chat/completions",
@@ -62,7 +59,7 @@ async def _ai_summary(text: str) -> str:
             json={
                 "model": settings.ai_model,
                 "messages": [
-                    {"role": "system", "content": "You are a concise news summarizer."},
+                    {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.3,
