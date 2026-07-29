@@ -23,16 +23,17 @@ async def chat_reply(text: str) -> str:
         return FALLBACK_EMPTY_MESSAGE
     if settings.ai_api_key:
         try:
+            messages = []
+            if SYSTEM_PROMPT:  # persona removed by default; only sent if configured
+                messages.append({"role": "system", "content": SYSTEM_PROMPT})
+            messages.append({"role": "user", "content": text[:4000]})
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
                     f"{settings.ai_base_url.rstrip('/')}/chat/completions",
                     headers={"Authorization": f"Bearer {settings.ai_api_key}"},
                     json={
                         "model": settings.ai_model,
-                        "messages": [
-                            {"role": "system", "content": SYSTEM_PROMPT},
-                            {"role": "user", "content": text[:4000]},
-                        ],
+                        "messages": messages,
                         "temperature": 0.6,
                     },
                 )

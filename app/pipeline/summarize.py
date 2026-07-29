@@ -52,16 +52,17 @@ def extractive_summary(text: str, max_sentences: int) -> str:
 
 async def _ai_summary(text: str) -> str:
     prompt = summary_user_prompt(text, settings.summary_sentences)
+    messages = []
+    if SUMMARY_SYSTEM_PROMPT:  # persona removed by default; only sent if configured
+        messages.append({"role": "system", "content": SUMMARY_SYSTEM_PROMPT})
+    messages.append({"role": "user", "content": prompt})
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
             f"{settings.ai_base_url.rstrip('/')}/chat/completions",
             headers={"Authorization": f"Bearer {settings.ai_api_key}"},
             json={
                 "model": settings.ai_model,
-                "messages": [
-                    {"role": "system", "content": SUMMARY_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": messages,
                 "temperature": 0.3,
             },
         )

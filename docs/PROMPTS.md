@@ -1,6 +1,11 @@
 # EIOS 提示词清单（拿去给 KIMI 整合用）
 
-EIOS 全部的 LLM 提示词都集中在 `app/prompts.py` 一个文件里。总共只有三条 + 几句兜底文案。下面是纯文本版，方便你直接复制到 KIMI 或别的助手里。
+> ⚠️ 这些 AI 人设提示词**已经从 EIOS 代码里删除**了 —— EIOS 现在不带任何人设，
+> 人设完全交给上游模型（KIMI）。下面留档，是给你**放到 KIMI 那边**用的原文。
+> 如果哪天你想让 EIOS 重新带人设，也可以在 `.env` 里设
+> `EIOS_CHAT_SYSTEM_PROMPT=...` / `EIOS_SUMMARY_SYSTEM_PROMPT=...`，无需改代码。
+
+下面是纯文本版，方便你直接复制到 KIMI 或别的助手里。
 
 ---
 
