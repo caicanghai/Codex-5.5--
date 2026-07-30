@@ -11,6 +11,7 @@ from app.prompts import (
     FALLBACK_EMPTY_MESSAGE,
     FALLBACK_NO_KEY_PREFIX,
 )
+from app.runtime import get_model
 
 # Back-compat alias (tests/other modules may import SYSTEM_PROMPT from here).
 SYSTEM_PROMPT = CHAT_SYSTEM_PROMPT
@@ -32,7 +33,7 @@ async def chat_reply(text: str) -> str:
                     f"{settings.ai_base_url.rstrip('/')}/chat/completions",
                     headers={"Authorization": f"Bearer {settings.ai_api_key}"},
                     json={
-                        "model": settings.ai_model,
+                        "model": get_model(),
                         "messages": messages,
                         "temperature": 0.6,
                     },

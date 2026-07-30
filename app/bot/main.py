@@ -25,6 +25,7 @@ from app.messaging.service import MessageRouter
 from app.pipeline.chat import chat_reply
 from app.pipeline.ingest import extract_url
 from app.pipeline.service import process_url
+from app.runtime import clear_model, get_model, set_model
 from app.voice.service import (
     cleanup_paths,
     probe_duration_seconds,
@@ -48,6 +49,7 @@ WELCOME = (
     "• 直接发消息（如“晚上好”）→ AI 回复 + 原生语音。\n"
     "• 发 URL / RSS 链接 → 摘要 + 语音。\n"
     "• /voice_list 看音色、/voice_pick <编号> 选定；/voice_add 随时加新音色。\n"
+    "• /model 切换调用哪家 AI（KIMI/DeepSeek/OpenAI/Claude…）。\n"
     "• /whoami 查看你的 Telegram ID（填 TELEGRAM_OWNER_ID 用）。"
 )
 
@@ -241,6 +243,38 @@ async def on_voice_remove(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"已删除音色 `{key}`。" if removed else f"未找到可删除的自定义音色 `{key}`（内置模板不可删）。",
         parse_mode="Markdown",
     )
+
+
+async def on_model(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show or switch the AI model EIOS calls (via the One API gateway).
+
+    /model           -> show current model + examples
+    /model <name>    -> switch (any model configured in your gateway)
+    /model default   -> clear the override, use the configured default
+    """
+    if not is_owner(update):
+        return
+    arg = (context.args[0] if context.args else "").strip()
+    if not arg:
+        await update.message.reply_text(
+            f"当前模型：`{get_model()}`\n"
+            "切换：/model <名称>（要在 One API 里已配置的）。例：\n"
+            "• /model moonshot-v1-8k （KIMI）\n"
+            "• /model deepseek-chat （DeepSeek）\n"
+            "• /model gpt-4o-mini （OpenAI）\n"
+            "• /model claude-3-5-sonnet （Claude）\n"
+            "/model default 恢复默认。",
+            parse_mode="Markdown",
+        )
+        return
+    if arg.lower() == "default":
+        clear_model()
+        await update.message.reply_text(f"已恢复默认模型：`{get_model()}`", parse_mode="Markdown")
+        return
+    if set_model(arg):
+        await update.message.reply_text(f"✅ 已切换到模型：`{arg}`", parse_mode="Markdown")
+    else:
+        await update.message.reply_text("切换失败（Redis 不可用？）。")
 
 
 async def on_speak(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -450,6 +484,7 @@ def build_application(token: str) -> Application:
     application.add_handler(CommandHandler("voice_pick", on_voice_pick))
     application.add_handler(CommandHandler("voice_add", on_voice_add))
     application.add_handler(CommandHandler("voice_remove", on_voice_remove))
+    application.add_handler(CommandHandler("model", on_model))
     application.add_handler(CommandHandler("speak", on_speak))
     # Owner-only channel commands.
     application.add_handler(CommandHandler("channels", on_channels))

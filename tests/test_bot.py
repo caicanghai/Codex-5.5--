@@ -24,9 +24,9 @@ def test_whoami_replies_with_sender_id():
 def test_build_application_wires_handlers():
     app = build_application("123456:ABCDEF")
     # start, help, whoami, voice_set/status/delete/list/pick/add/remove,
-    # speak, channels, channel_status, channel_test, broadcast, sync_on/off,
-    # voice-sample, text
+    # model, speak, channels, channel_status, channel_test, broadcast,
+    # sync_on/off, voice-sample, text
     handlers = app.handlers[0]
-    assert len(handlers) == 19
+    assert len(handlers) == 20
     # An error handler must be registered so handler exceptions never go silent.
     assert len(app.error_handlers) >= 1

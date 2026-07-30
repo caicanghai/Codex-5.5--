@@ -34,14 +34,22 @@ docker compose -f docker-compose.stack.yml up -d --build
 docker compose -f docker-compose.stack.yml ps      # 看是否都 healthy
 ```
 
-**4. 配 One API（让 EIOS 能调 KIMI）**
+**4. 配 One API（多家模型统一网关 —— 不只 KIMI）**
+
+One API 的价值就是**一个接口挂多家**：KIMI、DeepSeek、OpenAI、Claude、Gemini、豆包、通义…都能加。
 
 1. 打开 `https://{ONEAPI_DOMAIN}`，默认账号 `root` / 密码 `123456`（首次登录后**立刻改密码**）。
-2. 「渠道」→ 新建 → 类型选 **Moonshot（KIMI）**，填你的 KIMI 官方 key，模型填 `moonshot-v1-8k`。
-3. 「令牌」→ 新建一个令牌，复制它（形如 `sk-xxxx`）。
-4. 把这个令牌填回 `.env` 的 `AI_API_KEY=`，然后 `docker compose -f docker-compose.stack.yml up -d` 重启。
+2. 「渠道」→ 新建 → **想接哪家就加哪家**（可加多个）：
+   - Moonshot（KIMI）：key + 模型 `moonshot-v1-8k`
+   - DeepSeek：key + 模型 `deepseek-chat`
+   - OpenAI：key + 模型 `gpt-4o-mini`
+   - Anthropic（Claude）：key + 模型 `claude-3-5-sonnet`
+   - …任意 OpenAI 兼容的都行
+3. 「令牌」→ 新建一个令牌，复制（形如 `sk-xxxx`）。
+4. 令牌填回 `.env` 的 `AI_API_KEY=`，`docker compose -f docker-compose.stack.yml up -d` 重启。
 
-> 之后想加 DeepSeek/OpenAI，只在 One API 面板加渠道即可，EIOS 不用动。
+> **切换调用哪家模型**：不用改配置，直接在 Telegram 里发 `/model deepseek-chat`（或任意在 One API
+> 配好的模型名）即可实时切换；`/model` 单发看当前 + 示例，`/model default` 恢复默认。
 
 **5. 验收 EIOS**
 

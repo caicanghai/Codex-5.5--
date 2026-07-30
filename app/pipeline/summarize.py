@@ -9,6 +9,7 @@ import httpx
 
 from app.config import settings
 from app.prompts import SUMMARY_SYSTEM_PROMPT, summary_user_prompt
+from app.runtime import get_model
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 _WORD = re.compile(r"[A-Za-z0-9']+")
@@ -61,7 +62,7 @@ async def _ai_summary(text: str) -> str:
             f"{settings.ai_base_url.rstrip('/')}/chat/completions",
             headers={"Authorization": f"Bearer {settings.ai_api_key}"},
             json={
-                "model": settings.ai_model,
+                "model": get_model(),
                 "messages": messages,
                 "temperature": 0.3,
             },
