@@ -100,6 +100,14 @@ class Settings(BaseSettings):
     channel_retry_attempts: int = 2
     delivery_dedup_ttl_seconds: int = 3600
 
+    # ---- Dispatch brain: route a message to chat / summarize / an n8n workflow ----
+    # n8n gateway base URL (e.g. http://n8n:5678). Empty disables workflow routing.
+    n8n_base_url: str = ""
+    # Keyword -> n8n webhook path map, e.g. "提醒=remind;天气=weather;下单=order".
+    # A message starting with a keyword is forwarded to {n8n_base_url}/webhook/{path}.
+    n8n_workflows: str = ""
+    n8n_timeout_seconds: float = 30.0
+
     # Limits
     summary_sentences: int = 5
     tts_max_chars: int = 1800

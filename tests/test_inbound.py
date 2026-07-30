@@ -27,13 +27,13 @@ def test_reply_and_deliver_text_and_voice(monkeypatch):
     fake = _FakeProvider()
     monkeypatch.setattr(inbound, "all_providers", lambda: {"whatsapp": fake})
 
-    async def _chat(t):
-        return f"AI:{t}"
+    async def _dispatch(channel, sender, text):
+        return f"AI:{text}"
 
     async def _synth(text, owner_id=None):
         return "/tmp/eios-x.ogg", "fish"
 
-    monkeypatch.setattr(inbound, "chat_reply", _chat)
+    monkeypatch.setattr(inbound, "dispatch_reply", _dispatch)
     monkeypatch.setattr(inbound.voice_service, "synthesize", _synth)
     monkeypatch.setattr(inbound, "cleanup_paths", lambda *a: None)
 
@@ -46,7 +46,7 @@ def test_reply_and_deliver_text_and_voice(monkeypatch):
 def test_reply_and_deliver_voice_failure_isolated(monkeypatch):
     fake = _FakeProvider()
     monkeypatch.setattr(inbound, "all_providers", lambda: {"whatsapp": fake})
-    monkeypatch.setattr(inbound, "chat_reply", lambda t: _acoro("R"))
+    monkeypatch.setattr(inbound, "dispatch_reply", lambda channel, sender, text: _acoro("R"))
 
     async def _synth_fail(text, owner_id=None):
         raise RuntimeError("voice down")

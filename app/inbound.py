@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 
 from app.config import settings
+from app.dispatch import dispatch_reply
 from app.messaging.registry import all_providers
-from app.pipeline.chat import chat_reply
 from app.voice.service import cleanup_paths, voice_service
 
 log = logging.getLogger("eios.inbound")
@@ -20,8 +20,10 @@ async def reply_and_deliver(channel: str, sender: str, text: str, *, with_voice:
     """Generate an AI reply and deliver text (+native voice) back on `channel`.
 
     Returns the reply text. Never raises; logs failures per step.
+
+    The dispatch brain routes the message first: workflow (n8n) / summarize / chat.
     """
-    reply = await chat_reply(text)
+    reply = await dispatch_reply(channel, sender, text)
     providers = all_providers()
     provider = providers.get(channel)
     if provider is None or not provider.validate_config():

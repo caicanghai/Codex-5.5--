@@ -24,7 +24,10 @@ x-eios-env: &eios_env
   # EIOS 的 AI 走 One API 中转（关键：不直连各家，统一由 One API 分发）
   AI_BASE_URL: ${AI_BASE_URL:-http://oneapi:3000/v1}
   AI_API_KEY: ${AI_API_KEY:-}
-  AI_MODEL: ${AI_MODEL:-moonshot-v1-8k}
+  AI_MODEL: ${AI_MODEL:-deepseek-chat}
+  # Dispatch brain: route keyword messages to n8n workflows.
+  N8N_BASE_URL: ${N8N_BASE_URL:-http://n8n:5678}
+  N8N_WORKFLOWS: ${N8N_WORKFLOWS:-}
   TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env}
   TELEGRAM_OWNER_ID: ${TELEGRAM_OWNER_ID:-0}
   TTS_PROVIDER: ${TTS_PROVIDER:-fish}

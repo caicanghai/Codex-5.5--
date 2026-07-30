@@ -65,9 +65,29 @@ Telegram 里跟 bot 说句话，应收到 AI 回复 + 语音。
 
 ## 融合关系
 
-- **EIOS 的 AI 出口 = One API**（`AI_BASE_URL=http://oneapi:3000/v1`）。切换 KIMI/DeepSeek 只在 One API 面板操作。
-- **n8n 可反向触发 EIOS**：在 n8n 里用 HTTP 节点调 EIOS 的 `POST /ingest`（摘要某链接）或后续开放的发送接口，实现"定时把某内容播报给你"。
+- **EIOS 的 AI 出口 = One API**（`AI_BASE_URL=http://oneapi:3000/v1`）。切换 KIMI/DeepSeek 只在 One API 面板操作，或在 Telegram 发 `/model <名称>` 实时切。
+- **调度大脑**：EIOS 收到消息先分流——
+  - 消息以 `N8N_WORKFLOWS` 里的关键词打头 → 转发给对应 n8n 工作流（`{N8N_BASE_URL}/webhook/{路径}`），把工作流的返回念给你；
+  - 是链接 → 抓取 + AI 摘要；
+  - 其它 → AI 聊天。
+  加新工作流只改 `.env` 的 `N8N_WORKFLOWS`（如 `提醒=remind;天气=weather`），无需改代码。
+- **n8n 也可反向触发 EIOS**：在 n8n 里用 HTTP 节点调 EIOS 的 `POST /ingest`，实现"定时把某内容播报给你"。
 - **三者共享同一台机器的 Postgres/Redis**，互不干扰、各自独立重启。
+
+### 调度大脑示意
+
+```
+你发消息
+   │
+   ▼
+[EIOS 调度大脑 dispatch]
+   ├─ "提醒…/下单…/天气…"（关键词） ─► n8n 对应工作流 ─► 返回结果
+   ├─ "http://…"（链接）            ─► 抓取 + AI 摘要
+   └─ 其它                          ─► AI 聊天（One API → KIMI/DeepSeek/…）
+                                          │
+                                          ▼
+                                  合成语音 → 发回你
+```
 
 ---
 
