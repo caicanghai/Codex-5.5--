@@ -19,6 +19,13 @@
 	reverse_proxy n8n:5678
 }
 
+# prompt-studio 提示词工作站（源码到位 + --profile studio 启用后生效）
+# /relay 是开放代理，公网必须加访问控制：把 STUDIO_BASICAUTH 设成
+#   `用户名 bcrypt哈希`（用 `caddy hash-password` 生成），Caddy 就启用 Basic Auth。
+{$STUDIO_DOMAIN} {
+	reverse_proxy studio:8080
+}
+
 # ------------------------------------------------------------------
 # 无域名临时方案：注释掉上面三段，改用下面这段（HTTP、按端口访问）。
 # 然后浏览器用 http://你的IP:8000 / :3000 / :5678 访问对应服务。

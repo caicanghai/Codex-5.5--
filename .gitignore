@@ -38,3 +38,6 @@ Thumbs.db
 
 # Docker local volumes (if bind-mounted locally)
 .docker-data/
+
+# prompt-studio 源码（含真实 key 的 .env.local，绝不提交）— 部署时在服务器解压
+integration/prompt-studio/src/
