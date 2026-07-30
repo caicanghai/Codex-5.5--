@@ -1,0 +1,31 @@
+# Caddy 反向代理 —— 对外只暴露 80/443，自动申请/续期 HTTPS 证书。
+# 三个域名解析到你服务器 IP 后，Caddy 会自动配好证书。
+# 域名从环境变量注入（见 docker-compose.stack.yml 的 proxy 服务）。
+#
+# 如果你暂时没有域名、只想用 IP 访问，见文件底部的「无域名临时方案」。
+
+# EIOS —— 微信/WhatsApp 等 webhook 落在这里（微信后台回调 URL 填 https://{$EIOS_DOMAIN}/webhook/wechat）
+{$EIOS_DOMAIN} {
+	reverse_proxy api:8000
+}
+
+# One API 管理面板（创建渠道、令牌、查用量）
+{$ONEAPI_DOMAIN} {
+	reverse_proxy oneapi:3000
+}
+
+# n8n 自动化工作流界面
+{$N8N_DOMAIN} {
+	reverse_proxy n8n:5678
+}
+
+# ------------------------------------------------------------------
+# 无域名临时方案：注释掉上面三段，改用下面这段（HTTP、按端口访问）。
+# 然后浏览器用 http://你的IP:8000 / :3000 / :5678 访问对应服务。
+# 注意：微信公众号回调必须 HTTPS + 域名，无域名时微信这条接不了。
+#
+# :80 {
+# 	handle_path /eios/* { reverse_proxy api:8000 }
+# 	handle_path /oneapi/* { reverse_proxy oneapi:3000 }
+# 	handle_path /n8n/* { reverse_proxy n8n:5678 }
+# }
