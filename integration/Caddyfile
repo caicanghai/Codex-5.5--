@@ -26,6 +26,12 @@
 	reverse_proxy studio:8080
 }
 
+# talk-to-fengge 实时语音分身前端（--profile fengge 启用后生效）
+# 注意：WebRTC 媒体走 UDP，不经 Caddy——livekit 的 7880/UDP 段要在云防火墙单独放行。
+{$FENGGE_DOMAIN} {
+	reverse_proxy fengge-web:8766
+}
+
 # ------------------------------------------------------------------
 # 无域名临时方案：注释掉上面三段，改用下面这段（HTTP、按端口访问）。
 # 然后浏览器用 http://你的IP:8000 / :3000 / :5678 访问对应服务。

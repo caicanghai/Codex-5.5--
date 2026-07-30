@@ -182,6 +182,51 @@ services:
       retries: 10
       start_period: 20s
 
+  # ---------- talk-to-fengge：实时语音分身（源码到位后启用，profile fengge） ----------
+  # 3 个进程：livekit-server（信令+媒体）、worker（STT→LLM→TTS）、web（浏览器前端）
+  livekit:
+    image: livekit/livekit-server:latest
+    profiles: ['fengge']
+    restart: unless-stopped
+    command: ['--dev', '--bind', '0.0.0.0']
+    ports:
+      # WebRTC 媒体走 UDP，必须对外放行这一段（云防火墙也要开）
+      - '7880:7880' # 信令 (ws)
+      - '7881:7881' # RTC over TCP 回退
+      - '50000-50100:50000-50100/udp' # RTC 媒体 UDP 段
+
+  fengge-worker:
+    build:
+      context: ./talk-to-fengge
+      dockerfile: Dockerfile
+    profiles: ['fengge']
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: ${FENGGE_LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_API_KEY: ${FENGGE_LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${FENGGE_LIVEKIT_API_SECRET:-secret}
+      # LLM 默认走 One API 中转（也可在 .env 覆盖成直连）
+      AI_BASE_URL: ${STUDIO_AI_BASE_URL:-http://oneapi:3000/v1}
+    env_file:
+      - ./talk-to-fengge/src/.env.local # 真实 key 只在服务器这个文件里，不进仓库
+    depends_on:
+      - livekit
+
+  fengge-web:
+    build:
+      context: ./talk-to-fengge
+      dockerfile: Dockerfile
+    profiles: ['fengge']
+    restart: unless-stopped
+    command: ['python', '-m', 'worker.web_server']
+    environment:
+      LIVEKIT_URL: ${FENGGE_LIVEKIT_URL:-ws://livekit:7880}
+    env_file:
+      - ./talk-to-fengge/src/.env.local
+    depends_on:
+      - livekit
+      - fengge-worker
+
   # ---------- Caddy：反向代理 + 自动 HTTPS ----------
   proxy:
     image: caddy:2-alpine
@@ -195,6 +240,7 @@ services:
       N8N_DOMAIN: ${N8N_DOMAIN:-n8n.localhost}
       STUDIO_DOMAIN: ${STUDIO_DOMAIN:-studio.localhost}
       STUDIO_BASICAUTH: ${STUDIO_BASICAUTH:-}
+      FENGGE_DOMAIN: ${FENGGE_DOMAIN:-fengge.localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data

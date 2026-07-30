@@ -41,3 +41,6 @@ Thumbs.db
 
 # prompt-studio 源码（含真实 key 的 .env.local，绝不提交）— 部署时在服务器解压
 integration/prompt-studio/src/
+
+# talk-to-fengge 源码（含 .env.local 真实 key）— 部署时在服务器解压，绝不提交
+integration/talk-to-fengge/src/
