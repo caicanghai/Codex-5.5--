@@ -35,6 +35,35 @@ def test_whatsapp_webhook_verify(monkeypatch):
     assert verify_webhook("subscribe", "wrong", "CHAL") is None
 
 
+# ---- WeChat Official media send (mock) ----
+def test_wechat_official_send_file_mock(monkeypatch):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "wechat_official_enabled", True)
+    monkeypatch.setattr(settings, "wechat_app_id", "app123")
+    monkeypatch.setattr(settings, "wechat_app_secret", "secret123")
+
+    calls = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/token"):
+            return httpx.Response(200, json={"access_token": "AT", "expires_in": 7200})
+        if request.url.path.endswith("/media/upload"):
+            calls["media_uploaded"] = True
+            return httpx.Response(200, json={"media_id": "mid-123", "type": "file"})
+        if request.url.path.endswith("/message/custom/send"):
+            calls["sent"] = True
+            return httpx.Response(200, json={"errcode": 0})
+        return httpx.Response(404, json={})
+
+    p = WeChatOfficialProvider()
+    p._transport = httpx.MockTransport(handler)
+    assert p.validate_config() is True
+    asyncio.run(p.send_file("user123", "tests/fixtures/test.pdf"))
+    assert calls.get("media_uploaded") is True
+    assert calls.get("sent") is True
+
+
 # ---- WeCom mock API (token + send) ----
 def test_wecom_send_text_mock(monkeypatch):
     from app.config import settings

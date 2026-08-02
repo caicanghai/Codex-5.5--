@@ -186,3 +186,20 @@ class OpenClawProvider(MessagingProvider):
         finally:
             if os.path.exists(amr) and amr != ogg_path:
                 os.remove(amr)
+
+    async def send_audio(self, to: str, path: str) -> None:
+        await self.send_voice(to, path)
+
+    async def send_image(self, to: str, path_or_url: str, caption: str = "") -> None:
+        media_id = await self._upload_media(path_or_url, "image")
+        await self._post(
+            "/send",
+            json_body={"session": to or self.default_target, "type": "image", "media_id": media_id},
+        )
+
+    async def send_file(self, to: str, path: str, filename: str | None = None) -> None:
+        media_id = await self._upload_media(path, "file")
+        await self._post(
+            "/send",
+            json_body={"session": to or self.default_target, "type": "file", "media_id": media_id},
+        )

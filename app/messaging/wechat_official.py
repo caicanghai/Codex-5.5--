@@ -134,6 +134,10 @@ class WeChatOfficialProvider(MessagingProvider):
     async def send_audio(self, to: str, path: str) -> None:
         await self.send_voice(to, path)
 
+    async def send_file(self, to: str, path: str, filename: str | None = None) -> None:
+        media_id = await self._upload_media(path, "file")
+        await self._custom_send({"touser": to, "msgtype": "file", "file": {"media_id": media_id}})
+
     async def send_voice(self, to: str, ogg_path: str) -> None:
         amr = await to_amr(ogg_path)
         try:

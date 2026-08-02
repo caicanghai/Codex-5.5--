@@ -93,9 +93,23 @@ def test_retry_exhausted_raises(monkeypatch):
         asyncio.run(p.chat("hi"))
 
 
-# ---- send text / voice (mock) ----
+# ---- send text / media (mock) ----
 def test_send_text(monkeypatch):
     _configure(monkeypatch, openclaw_target="wxid_1")
     p = OpenClawProvider()
     p._transport = mock_transport()
     asyncio.run(p.send_text("", "hello"))  # no exception = ok
+
+
+def test_send_image(monkeypatch):
+    _configure(monkeypatch, openclaw_target="wxid_1")
+    p = OpenClawProvider()
+    p._transport = mock_transport()
+    asyncio.run(p.send_image("", "tests/fixtures/test.png"))  # no exception = ok
+
+
+def test_send_file(monkeypatch):
+    _configure(monkeypatch, openclaw_target="wxid_1")
+    p = OpenClawProvider()
+    p._transport = mock_transport()
+    asyncio.run(p.send_file("", "tests/fixtures/test.pdf"))  # no exception = ok
