@@ -60,13 +60,13 @@ def test_router_isolates_openclaw_failure(monkeypatch):
 
 
 def test_voice_pipeline_fish_to_openclaw(monkeypatch):
-    """Fish OGG -> WeChat-native (AMR) adapter -> openclaw send (AMR mocked)."""
+    """Fish OGG -> WeChat SILK v3 voice adapter -> openclaw send (SILK mocked)."""
     _configure(monkeypatch)
 
-    async def _fake_amr(src, out=None):
-        return src  # skip real ffmpeg AMR encoder in tests
+    async def _fake_silk(src, out=None):
+        return src  # skip real ffmpeg SILK encoder in tests
 
-    monkeypatch.setattr("app.messaging.openclaw.to_amr", _fake_amr)
+    monkeypatch.setattr("app.messaging.openclaw.to_silk", _fake_silk)
     p = OpenClawProvider()
     p._transport = mock_transport()
 

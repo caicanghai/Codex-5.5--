@@ -17,7 +17,7 @@ import httpx
 
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
-from app.messaging.media import to_amr
+from app.messaging.media import to_silk
 
 # ---- serializer ---------------------------------------------------------------
 
@@ -175,17 +175,17 @@ class OpenClawProvider(MessagingProvider):
         return str(media_id)
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        """Fish Audio OGG -> WeChat-native voice adapter (AMR) -> openclaw send."""
-        amr = await to_amr(ogg_path)
+        """Fish Audio OGG -> WeChat SILK v3 voice -> openclaw send."""
+        silk = await to_silk(ogg_path)
         try:
-            media_id = await self._upload_media(amr, "voice")
+            media_id = await self._upload_media(silk, "voice")
             await self._post(
                 "/send",
                 json_body={"session": to or self.default_target, "type": "voice", "media_id": media_id},
             )
         finally:
-            if os.path.exists(amr) and amr != ogg_path:
-                os.remove(amr)
+            if os.path.exists(silk) and silk != ogg_path:
+                os.remove(silk)
 
     async def send_audio(self, to: str, path: str) -> None:
         await self.send_voice(to, path)
