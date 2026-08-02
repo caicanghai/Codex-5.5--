@@ -23,10 +23,18 @@ class Settings(BaseSettings):
         default="", validation_alias=AliasChoices("AI_API_KEY", "OPENAI_API_KEY")
     )
     ai_base_url: str = Field(
-        default="https://api.openai.com/v1",
+        default="https://openrouter.ai/api/v1",
         validation_alias=AliasChoices("AI_BASE_URL", "OPENAI_BASE_URL"),
     )
-    ai_model: str = "gpt-4o-mini"
+    ai_model: str = "llama-3.1-8b"  # Free model by default
+
+    # Fallback AI backends (automatically tried if primary fails)
+    ai_fallback_url: str = ""
+    ai_fallback_key: str = ""
+    ai_fallback2_url: str = ""
+    ai_fallback2_key: str = ""
+    ai_fallback3_url: str = ""
+    ai_fallback3_key: str = ""
 
     # TTS (Edge fallback voice)
     tts_voice: str = "en-US-AriaNeural"

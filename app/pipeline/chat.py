@@ -17,33 +17,78 @@ from app.runtime import get_model
 SYSTEM_PROMPT = CHAT_SYSTEM_PROMPT
 
 
+async def _try_ai_backend(
+    base_url: str, api_key: str, model: str, messages: list, timeout: float = 60.0
+) -> str | None:
+    """Try one AI backend. Return content on success, None on any failure."""
+    if not base_url or not api_key:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.6,
+                },
+            )
+            resp.raise_for_status()
+            content = resp.json()["choices"][0]["message"]["content"].strip()
+            return content if content else None
+    except Exception:
+        return None
+
+
 async def chat_reply(text: str) -> str:
-    """Return an AI reply to a free-form message. Never raises."""
+    """Return an AI reply via multi-level failover. Never raises.
+
+    Priority: main AI → fallback1 → fallback2 → fallback3 → offline summary.
+    """
     text = (text or "").strip()
     if not text:
         return FALLBACK_EMPTY_MESSAGE
+
     if settings.ai_api_key:
-        try:
-            messages = []
-            if SYSTEM_PROMPT:  # persona removed by default; only sent if configured
-                messages.append({"role": "system", "content": SYSTEM_PROMPT})
-            messages.append({"role": "user", "content": text[:4000]})
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
-                    f"{settings.ai_base_url.rstrip('/')}/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.ai_api_key}"},
-                    json={
-                        "model": get_model(),
-                        "messages": messages,
-                        "temperature": 0.6,
-                    },
-                )
-                resp.raise_for_status()
-                content = resp.json()["choices"][0]["message"]["content"].strip()
-                if content:
-                    return content
-        except Exception:
-            # AI failure must never cause silence — clear temporary fallback.
-            return FALLBACK_AI_UNAVAILABLE
+        messages = []
+        if SYSTEM_PROMPT:
+            messages.append({"role": "system", "content": SYSTEM_PROMPT})
+        messages.append({"role": "user", "content": text[:4000]})
+
+        # Try main AI
+        result = await _try_ai_backend(
+            settings.ai_base_url, settings.ai_api_key, get_model(), messages
+        )
+        if result:
+            return result
+
+        # Try fallback 1
+        if settings.ai_fallback_url and settings.ai_fallback_key:
+            result = await _try_ai_backend(
+                settings.ai_fallback_url, settings.ai_fallback_key, get_model(), messages
+            )
+            if result:
+                return result
+
+        # Try fallback 2
+        if settings.ai_fallback2_url and settings.ai_fallback2_key:
+            result = await _try_ai_backend(
+                settings.ai_fallback2_url, settings.ai_fallback2_key, get_model(), messages
+            )
+            if result:
+                return result
+
+        # Try fallback 3
+        if settings.ai_fallback3_url and settings.ai_fallback3_key:
+            result = await _try_ai_backend(
+                settings.ai_fallback3_url, settings.ai_fallback3_key, get_model(), messages
+            )
+            if result:
+                return result
+
+        # All backends failed
+        return FALLBACK_AI_UNAVAILABLE
+
     # No AI key configured: still reply (never silent).
     return f"{FALLBACK_NO_KEY_PREFIX}{text[:200]}"
