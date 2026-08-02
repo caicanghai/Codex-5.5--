@@ -17,7 +17,7 @@ import httpx
 
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
-from app.messaging.media import to_silk
+from app.messaging.audio_config import get_provider_codec
 
 # ---- serializer ---------------------------------------------------------------
 
@@ -175,17 +175,18 @@ class OpenClawProvider(MessagingProvider):
         return str(media_id)
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        """Fish Audio OGG -> WeChat SILK v3 voice -> openclaw send."""
-        silk = await to_silk(ogg_path)
+        """Fish Audio OGG -> platform-specific audio codec (default SILK) -> openclaw send."""
+        codec = get_provider_codec("openclaw")
+        encoded = await codec.encode(ogg_path)
         try:
-            media_id = await self._upload_media(silk, "voice")
+            media_id = await self._upload_media(encoded, "voice")
             await self._post(
                 "/send",
                 json_body={"session": to or self.default_target, "type": "voice", "media_id": media_id},
             )
         finally:
-            if os.path.exists(silk) and silk != ogg_path:
-                os.remove(silk)
+            if os.path.exists(encoded) and encoded != ogg_path:
+                os.remove(encoded)
 
     async def send_audio(self, to: str, path: str) -> None:
         await self.send_voice(to, path)

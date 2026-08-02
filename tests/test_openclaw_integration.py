@@ -60,13 +60,15 @@ def test_router_isolates_openclaw_failure(monkeypatch):
 
 
 def test_voice_pipeline_fish_to_openclaw(monkeypatch):
-    """Fish OGG -> WeChat SILK v3 voice adapter -> openclaw send (SILK mocked)."""
+    """Fish OGG -> platform audio codec (SILK for OpenClaw) -> send (codec mocked)."""
     _configure(monkeypatch)
 
-    async def _fake_silk(src, out=None):
-        return src  # skip real ffmpeg SILK encoder in tests
+    class _FakeCodec:
+        async def encode(self, src, out=None):
+            return src  # skip real ffmpeg encoding in tests
 
-    monkeypatch.setattr("app.messaging.openclaw.to_silk", _fake_silk)
+    # Mock the get_provider_codec in the module where it's imported
+    monkeypatch.setattr("app.messaging.openclaw.get_provider_codec", lambda _: _FakeCodec())
     p = OpenClawProvider()
     p._transport = mock_transport()
 

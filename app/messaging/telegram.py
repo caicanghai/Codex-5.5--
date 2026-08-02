@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
+
 from telegram import Bot
 
 from app.config import settings
 from app.messaging.base import MessagingProvider
+from app.messaging.audio_config import get_provider_codec
 
 
 class TelegramProvider(MessagingProvider):
@@ -40,5 +43,11 @@ class TelegramProvider(MessagingProvider):
             await self._bot().send_document(chat_id=self._chat(to), document=fh, filename=filename)
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        with open(ogg_path, "rb") as fh:
-            await self._bot().send_voice(chat_id=self._chat(to), voice=fh)
+        codec = get_provider_codec("telegram")
+        encoded = await codec.encode(ogg_path)
+        try:
+            with open(encoded, "rb") as fh:
+                await self._bot().send_voice(chat_id=self._chat(to), voice=fh)
+        finally:
+            if encoded != ogg_path and os.path.exists(encoded):
+                os.remove(encoded)

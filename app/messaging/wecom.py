@@ -7,7 +7,7 @@ import time
 
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
-from app.messaging.media import to_silk
+from app.messaging.audio_config import get_provider_codec
 from app.messaging.wxcrypt import WXBizMsgCrypt
 
 
@@ -122,10 +122,11 @@ class WeComProvider(MessagingProvider):
         await self.send_voice(to, path)
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        silk = await to_silk(ogg_path)
+        codec = get_provider_codec("wecom")
+        encoded = await codec.encode(ogg_path)
         try:
-            media_id = await self._upload_media(silk, "voice")
+            media_id = await self._upload_media(encoded, "voice")
             await self._post_message({**self._targets(to), "msgtype": "voice", "voice": {"media_id": media_id}})
         finally:
-            if os.path.exists(silk) and silk != ogg_path:
-                os.remove(silk)
+            if os.path.exists(encoded) and encoded != ogg_path:
+                os.remove(encoded)

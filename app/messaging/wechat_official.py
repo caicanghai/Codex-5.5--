@@ -11,7 +11,7 @@ import time
 
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
-from app.messaging.media import to_silk
+from app.messaging.audio_config import get_provider_codec
 from app.messaging.wxcrypt import WXBizMsgCrypt
 
 
@@ -139,10 +139,11 @@ class WeChatOfficialProvider(MessagingProvider):
         await self._custom_send({"touser": to, "msgtype": "file", "file": {"media_id": media_id}})
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        silk = await to_silk(ogg_path)
+        codec = get_provider_codec("wechat_official")
+        encoded = await codec.encode(ogg_path)
         try:
-            media_id = await self._upload_media(silk, "voice")
+            media_id = await self._upload_media(encoded, "voice")
             await self._custom_send({"touser": to, "msgtype": "voice", "voice": {"media_id": media_id}})
         finally:
-            if os.path.exists(silk) and silk != ogg_path:
-                os.remove(silk)
+            if os.path.exists(encoded) and encoded != ogg_path:
+                os.remove(encoded)

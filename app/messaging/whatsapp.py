@@ -10,6 +10,7 @@ import os
 
 from app.config import settings
 from app.messaging.base import MessagingError, MessagingProvider
+from app.messaging.audio_config import get_provider_codec
 
 
 def verify_webhook(mode: str, token: str, challenge: str) -> str | None:
@@ -86,9 +87,14 @@ class WhatsAppProvider(MessagingProvider):
         await self._post({"to": self._to(to), "type": "document", "document": doc})
 
     async def send_audio(self, to: str, path: str) -> None:
-        media_id = await self._upload(path, "audio/ogg")
-        await self._post({"to": self._to(to), "type": "audio", "audio": {"id": media_id}})
+        codec = get_provider_codec("whatsapp")
+        encoded = await codec.encode(path)
+        try:
+            media_id = await self._upload(encoded, "audio/ogg")
+            await self._post({"to": self._to(to), "type": "audio", "audio": {"id": media_id}})
+        finally:
+            if encoded != path and __import__("os").path.exists(encoded):
+                __import__("os").remove(encoded)
 
     async def send_voice(self, to: str, ogg_path: str) -> None:
-        # WhatsApp voice notes use OGG/Opus, which our pipeline already produces.
         await self.send_audio(to, ogg_path)
