@@ -5,9 +5,15 @@
 **语言**: Python (FastAPI) + TypeScript (React) + Swift (iOS)  
 **部署**: Docker Compose on Ubuntu VPS
 
+> ⚠️ **现状说明（重要，接手前必读）**
+> 本文档描述的是**目标产品愿景 + 未来架构蓝图**。
+> **当前真实代码**是一个单体 FastAPI 应用（`app/` 目录）+ Telegram bot，Docker Compose 编排（根目录 `docker-compose.yml`，4 个容器：db/redis/api/bot）。
+> 下文提到的微服务拆分（gateway/api/worker/scheduler 独立服务）、多租户 RLS、12 阶段管道、iOS 推送等，**属于蓝图，尚未实现**。
+> 真实部署方式见 **`DEPLOYMENT.md`**。别把蓝图当现状。
+
 ---
 
-## 🎯 项目目标
+## 🎯 项目目标（愿景）
 
 构建一个**多租户、多渠道、智能证据处理平台**，用户可以通过Telegram、WhatsApp、WeChat、WeCom、iOS等多个渠道：
 1. 发送信息/URL

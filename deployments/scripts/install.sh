@@ -1,79 +1,80 @@
 #!/bin/bash
+# EIOS 一键部署脚本 — 使用根目录真实的 docker-compose.yml
 set -e
 
-echo "🚀 EIOS 一键部署脚本"
-echo "===================="
+REPO_URL="https://github.com/caicanghai/Codex-5.5--.git"
+BRANCH="claude/eios-repository-foundation-hoi3u8"
+DIR="Codex-5.5--"
 
-# 检查Docker
+echo "🚀 EIOS 一键部署"
+echo "================"
+
+# --- 1. 检查 Docker ---
 if ! command -v docker &> /dev/null; then
-    echo "❌ Docker未安装，正在安装..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sudo sh get-docker.sh
-    sudo usermod -aG docker $USER
+    echo "📦 安装 Docker..."
+    curl -fsSL https://get.docker.com | sh
 fi
+echo "✅ Docker 已就绪"
 
-# 检查Docker Compose
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose未安装，正在安装..."
-    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-fi
-
-echo "✅ Docker已安装"
-
-# 克隆代码（如果还没有）
-if [ ! -d "Codex-5.5--" ]; then
-    echo "📦 克隆EIOS代码..."
-    git clone https://github.com/caicanghai/Codex-5.5--.git
-    cd Codex-5.5--
-    git checkout claude/eios-repository-foundation-hoi3u8
+# docker compose (v2) 还是 docker-compose (v1)?
+if docker compose version &> /dev/null; then
+    DC="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DC="docker-compose"
 else
-    cd Codex-5.5--
-    echo "📥 更新EIOS代码..."
-    git pull origin claude/eios-repository-foundation-hoi3u8
+    echo "❌ 找不到 docker compose,请先安装"; exit 1
+fi
+echo "✅ 使用: $DC"
+
+# --- 2. 拉代码 ---
+if [ ! -d "$DIR" ]; then
+    echo "📥 克隆代码..."
+    git clone "$REPO_URL"
+    cd "$DIR"
+    git checkout "$BRANCH"
+else
+    cd "$DIR"
+    echo "📥 更新代码..."
+    git fetch origin "$BRANCH" && git checkout "$BRANCH" && git pull origin "$BRANCH"
 fi
 
-# 配置环境
-if [ ! -f ".env.prod" ]; then
-    echo "⚙️  创建 .env.prod..."
-    cp deployments/env/.env.example .env.prod
-
+# --- 3. 配置 .env ---
+if [ ! -f ".env" ]; then
+    cp .env.example .env
     echo ""
-    echo "⚠️  请编辑 .env.prod 文件:"
-    echo "   nano .env.prod"
+    echo "⚠️  已生成 .env,请填写必填项后再启动:"
+    echo "    nano .env"
     echo ""
-    echo "必填项:"
-    echo "  - POSTGRES_PASSWORD (20+ 字符)"
-    echo "  - TELEGRAM_BOT_TOKEN (从 @BotFather 获取)"
-    echo "  - AI_API_KEY (https://openrouter.ai)"
+    echo "必填:"
+    echo "  TELEGRAM_BOT_TOKEN  (从 @BotFather 获取)"
+    echo "  TELEGRAM_OWNER_ID   (你的 Telegram 数字ID,发消息给 @userinfobot 获取)"
+    echo "可选:"
+    echo "  AI_API_KEY / AI_BASE_URL / AI_MODEL  (留空则用离线摘要)"
+    echo "  WECOM_* / WECHAT_* / WHATSAPP_*      (对应渠道)"
     echo ""
-    echo "然后运行: docker-compose -f deployments/docker-compose.prod.yml up -d"
+    echo "填完后运行:  $DC up -d"
     exit 0
 fi
 
-echo "🐳 启动Docker容器..."
-docker-compose -f deployments/docker-compose.prod.yml up -d
+# --- 4. 启动 ---
+echo "🐳 构建并启动容器..."
+$DC up -d --build
 
 echo ""
-echo "⏳ 等待容器启动..."
-sleep 10
+echo "⏳ 等待启动 (20秒)..."
+sleep 20
 
-echo ""
-echo "✅ 部署完成！"
 echo ""
 echo "📊 服务状态:"
-docker-compose -f deployments/docker-compose.prod.yml ps
-echo ""
-echo "📝 日志:"
-docker-compose -f deployments/docker-compose.prod.yml logs -f api &
-sleep 5
+$DC ps
 
 echo ""
-echo "✨ EIOS 已在运行！"
+echo "🩺 健康检查:"
+curl -sf http://localhost:8000/health && echo " ✅ API 正常" || echo " ⚠️  API 还没起来,查看日志: $DC logs api"
+
 echo ""
-echo "📍 接下来:"
-echo "  1. API: http://localhost:8000/health"
-echo "  2. Gateway: http://localhost:8001/health"
-echo "  3. 查看日志: docker-compose -f deployments/docker-compose.prod.yml logs -f"
-echo ""
-echo "🎉 完成！"
+echo "✨ 完成! 常用命令:"
+echo "  $DC logs -f api      # 看API日志"
+echo "  $DC logs -f bot      # 看Telegram bot日志"
+echo "  $DC ps               # 看状态"
+echo "  $DC down             # 停止"
