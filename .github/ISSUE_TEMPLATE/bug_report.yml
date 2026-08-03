@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a defect in EIOS
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for filing a bug. Please do not include secrets or PII.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - gateway
+        - api
+        - worker
+        - schemas / contracts
+        - deployments / CI
+        - docs
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, Docker version, etc.
+    validations:
+      required: false

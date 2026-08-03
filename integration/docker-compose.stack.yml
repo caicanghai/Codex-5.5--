@@ -1,0 +1,259 @@
+# EIOS 融合栈 —— 一台服务器同时跑：
+#   EIOS（语音助手）+ One API（AI 中转中枢）+ n8n（自动化工作流）
+#   + Postgres / Redis（共享数据层）+ Caddy（反向代理，自动 HTTPS）
+#
+# 用法（在 integration/ 目录下）：
+#   cp .env.stack.example .env
+#   nano .env            # 填 token / 域名 / 密钥
+#   docker compose -f docker-compose.stack.yml up -d
+#
+# 数据流：
+#   你(微信/TG) → EIOS 收消息+语音 → 调 One API(统一网关) → KIMI/DeepSeek/...
+#   n8n 可通过 EIOS 的 /ingest、One API 触发自动化任务。
+#
+# 端口/路由（都由 Caddy 反代到内网，对外只 80/443）：
+#   https://你的域名/            → EIOS api（webhook 落地）
+#   https://oneapi.你的域名/      → One API 管理面板
+#   https://n8n.你的域名/         → n8n 界面
+
+name: eios-stack
+
+x-eios-env: &eios_env
+  DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-eios}:${POSTGRES_PASSWORD:-eios}@db:5432/${POSTGRES_DB:-eios}
+  REDIS_URL: redis://redis:6379/0
+  # EIOS 的 AI 走 One API 中转（关键：不直连各家，统一由 One API 分发）
+  AI_BASE_URL: ${AI_BASE_URL:-http://oneapi:3000/v1}
+  AI_API_KEY: ${AI_API_KEY:-}
+  AI_MODEL: ${AI_MODEL:-deepseek-chat}
+  # Dispatch brain: route keyword messages to n8n workflows.
+  N8N_BASE_URL: ${N8N_BASE_URL:-http://n8n:5678}
+  N8N_WORKFLOWS: ${N8N_WORKFLOWS:-}
+  TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env}
+  TELEGRAM_OWNER_ID: ${TELEGRAM_OWNER_ID:-0}
+  TTS_PROVIDER: ${TTS_PROVIDER:-fish}
+  FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY:-}
+  FISH_AUDIO_BASE_URL: ${FISH_AUDIO_BASE_URL:-https://api.fish.audio}
+  FISH_AUDIO_VOICE_ID: ${FISH_AUDIO_VOICE_ID:-}
+  ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+  ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-}
+  TTS_VOICE: ${TTS_VOICE:-zh-CN-XiaoxiaoNeural}
+  CHANNELS_ENABLED: ${CHANNELS_ENABLED:-telegram}
+  WECOM_ENABLED: ${WECOM_ENABLED:-false}
+  WECOM_CORP_ID: ${WECOM_CORP_ID:-}
+  WECOM_AGENT_ID: ${WECOM_AGENT_ID:-}
+  WECOM_SECRET: ${WECOM_SECRET:-}
+  WECOM_TOKEN: ${WECOM_TOKEN:-}
+  WECOM_AES_KEY: ${WECOM_AES_KEY:-}
+  WECHAT_OFFICIAL_ENABLED: ${WECHAT_OFFICIAL_ENABLED:-false}
+  WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+  WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+  WECHAT_TOKEN: ${WECHAT_TOKEN:-}
+  WECHAT_AES_KEY: ${WECHAT_AES_KEY:-}
+
+services:
+  # ---------- 共享数据层 ----------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eios}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eios}
+      POSTGRES_DB: ${POSTGRES_DB:-eios}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-eios}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------- One API：AI 中转中枢 ----------
+  oneapi:
+    image: justsong/one-api:latest
+    restart: unless-stopped
+    environment:
+      # One API 自己的库用 sqlite（挂盘持久化），够个人用；也可指向上面的 pg
+      SQL_DSN: ''
+      REDIS_CONN_STRING: redis://redis:6379/1
+      SESSION_SECRET: ${ONEAPI_SESSION_SECRET:?set ONEAPI_SESSION_SECRET in .env}
+      TZ: Asia/Shanghai
+    volumes:
+      - oneapidata:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://localhost:3000/api/status || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------- n8n：自动化工作流 ----------
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      GENERIC_TIMEZONE: Asia/Shanghai
+      N8N_BASIC_AUTH_ACTIVE: 'true'
+      N8N_BASIC_AUTH_USER: ${N8N_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_PASSWORD:?set N8N_PASSWORD in .env}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+    volumes:
+      - n8ndata:/home/node/.n8n
+    depends_on:
+      - db
+
+  # ---------- EIOS：语音助手（api + bot） ----------
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *eios_env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      oneapi:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  bot:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ['python', '-m', 'app.bot.main']
+    environment:
+      <<: *eios_env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------- prompt-studio：提示词工作站（源码到位后启用） ----------
+  # 用 profile 隔离：不加 --profile studio 时不参与，不影响现有栈。
+  # 源码放在 ./prompt-studio/src/ 后，用 `--profile studio up -d --build` 启用。
+  studio:
+    build:
+      context: ./prompt-studio
+      dockerfile: Dockerfile
+    profiles: ['studio']
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      # AI 精修端点默认指向 One API 中转（也可留空让访客各自填）
+      STUDIO_AI_BASE_URL: ${STUDIO_AI_BASE_URL:-http://oneapi:3000/v1}
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://localhost:8080/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---------- talk-to-fengge：实时语音分身（源码到位后启用，profile fengge） ----------
+  # 3 个进程：livekit-server（信令+媒体）、worker（STT→LLM→TTS）、web（浏览器前端）
+  livekit:
+    image: livekit/livekit-server:latest
+    profiles: ['fengge']
+    restart: unless-stopped
+    command: ['--dev', '--bind', '0.0.0.0']
+    ports:
+      # WebRTC 媒体走 UDP，必须对外放行这一段（云防火墙也要开）
+      - '7880:7880' # 信令 (ws)
+      - '7881:7881' # RTC over TCP 回退
+      - '50000-50100:50000-50100/udp' # RTC 媒体 UDP 段
+
+  fengge-worker:
+    build:
+      context: ./talk-to-fengge
+      dockerfile: Dockerfile
+    profiles: ['fengge']
+    restart: unless-stopped
+    environment:
+      LIVEKIT_URL: ${FENGGE_LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_API_KEY: ${FENGGE_LIVEKIT_API_KEY:-devkey}
+      LIVEKIT_API_SECRET: ${FENGGE_LIVEKIT_API_SECRET:-secret}
+      # LLM 默认走 One API 中转（也可在 .env 覆盖成直连）
+      AI_BASE_URL: ${STUDIO_AI_BASE_URL:-http://oneapi:3000/v1}
+    env_file:
+      - ./talk-to-fengge/src/.env.local # 真实 key 只在服务器这个文件里，不进仓库
+    depends_on:
+      - livekit
+
+  fengge-web:
+    build:
+      context: ./talk-to-fengge
+      dockerfile: Dockerfile
+    profiles: ['fengge']
+    restart: unless-stopped
+    command: ['python', '-m', 'worker.web_server']
+    environment:
+      LIVEKIT_URL: ${FENGGE_LIVEKIT_URL:-ws://livekit:7880}
+    env_file:
+      - ./talk-to-fengge/src/.env.local
+    depends_on:
+      - livekit
+      - fengge-worker
+
+  # ---------- Caddy：反向代理 + 自动 HTTPS ----------
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      EIOS_DOMAIN: ${EIOS_DOMAIN:-localhost}
+      ONEAPI_DOMAIN: ${ONEAPI_DOMAIN:-oneapi.localhost}
+      N8N_DOMAIN: ${N8N_DOMAIN:-n8n.localhost}
+      STUDIO_DOMAIN: ${STUDIO_DOMAIN:-studio.localhost}
+      STUDIO_BASICAUTH: ${STUDIO_BASICAUTH:-}
+      FENGGE_DOMAIN: ${FENGGE_DOMAIN:-fengge.localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - api
+      - oneapi
+      - n8n
+
+volumes:
+  pgdata:
+  redisdata:
+  oneapidata:
+  n8ndata:
+  caddydata:
+  caddyconfig:

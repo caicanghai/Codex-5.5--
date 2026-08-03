@@ -1,0 +1,20 @@
+# EIOS code owners. At least one owner review is required on protected branches.
+# Replace the placeholder handles with real teams/maintainers.
+
+# Default owner for everything.
+*                       @eios-maintainers
+
+# Documentation baseline.
+/docs/                  @eios-maintainers
+/architecture/          @eios-maintainers
+
+# Contracts (schemas, API surface) — reviewed by architecture owners.
+/schemas/               @eios-maintainers
+/services/api/openapi/  @eios-maintainers
+
+# CI/CD and governance.
+/.github/               @eios-maintainers
+/deployments/           @eios-maintainers
+
+# Security-sensitive baseline.
+/docs/SECURITY.md       @eios-maintainers

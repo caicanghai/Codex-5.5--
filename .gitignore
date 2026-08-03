@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Secrets & local env (NEVER commit) — see docs/SECURITY.md
+.env
+.env.*
+!.env.example
+deployments/.env
+!deployments/.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+
+# Docker local volumes (if bind-mounted locally)
+.docker-data/
+
+# prompt-studio 源码（含真实 key 的 .env.local，绝不提交）— 部署时在服务器解压
+integration/prompt-studio/src/
+
+# talk-to-fengge 源码（含 .env.local 真实 key）— 部署时在服务器解压，绝不提交
+integration/talk-to-fengge/src/

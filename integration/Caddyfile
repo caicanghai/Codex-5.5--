@@ -1,0 +1,44 @@
+# Caddy 反向代理 —— 对外只暴露 80/443，自动申请/续期 HTTPS 证书。
+# 三个域名解析到你服务器 IP 后，Caddy 会自动配好证书。
+# 域名从环境变量注入（见 docker-compose.stack.yml 的 proxy 服务）。
+#
+# 如果你暂时没有域名、只想用 IP 访问，见文件底部的「无域名临时方案」。
+
+# EIOS —— 微信/WhatsApp 等 webhook 落在这里（微信后台回调 URL 填 https://{$EIOS_DOMAIN}/webhook/wechat）
+{$EIOS_DOMAIN} {
+	reverse_proxy api:8000
+}
+
+# One API 管理面板（创建渠道、令牌、查用量）
+{$ONEAPI_DOMAIN} {
+	reverse_proxy oneapi:3000
+}
+
+# n8n 自动化工作流界面
+{$N8N_DOMAIN} {
+	reverse_proxy n8n:5678
+}
+
+# prompt-studio 提示词工作站（源码到位 + --profile studio 启用后生效）
+# /relay 是开放代理，公网必须加访问控制：把 STUDIO_BASICAUTH 设成
+#   `用户名 bcrypt哈希`（用 `caddy hash-password` 生成），Caddy 就启用 Basic Auth。
+{$STUDIO_DOMAIN} {
+	reverse_proxy studio:8080
+}
+
+# talk-to-fengge 实时语音分身前端（--profile fengge 启用后生效）
+# 注意：WebRTC 媒体走 UDP，不经 Caddy——livekit 的 7880/UDP 段要在云防火墙单独放行。
+{$FENGGE_DOMAIN} {
+	reverse_proxy fengge-web:8766
+}
+
+# ------------------------------------------------------------------
+# 无域名临时方案：注释掉上面三段，改用下面这段（HTTP、按端口访问）。
+# 然后浏览器用 http://你的IP:8000 / :3000 / :5678 访问对应服务。
+# 注意：微信公众号回调必须 HTTPS + 域名，无域名时微信这条接不了。
+#
+# :80 {
+# 	handle_path /eios/* { reverse_proxy api:8000 }
+# 	handle_path /oneapi/* { reverse_proxy oneapi:3000 }
+# 	handle_path /n8n/* { reverse_proxy n8n:5678 }
+# }

@@ -1,0 +1,123 @@
+name: eios-mvp
+
+x-channel-env: &channel_env
+  CHANNELS_ENABLED: ${CHANNELS_ENABLED:-telegram}
+  WECOM_ENABLED: ${WECOM_ENABLED:-false}
+  WECOM_CORP_ID: ${WECOM_CORP_ID:-}
+  WECOM_AGENT_ID: ${WECOM_AGENT_ID:-}
+  WECOM_SECRET: ${WECOM_SECRET:-}
+  WECOM_TARGET_USER: ${WECOM_TARGET_USER:-}
+  WECOM_TARGET_PARTY: ${WECOM_TARGET_PARTY:-}
+  WECOM_TARGET_TAG: ${WECOM_TARGET_TAG:-}
+  WECHAT_OFFICIAL_ENABLED: ${WECHAT_OFFICIAL_ENABLED:-false}
+  WECHAT_APP_ID: ${WECHAT_APP_ID:-}
+  WECHAT_APP_SECRET: ${WECHAT_APP_SECRET:-}
+  WECHAT_TOKEN: ${WECHAT_TOKEN:-}
+  WECHAT_AES_KEY: ${WECHAT_AES_KEY:-}
+  WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
+  WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+  WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+  WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID:-}
+  WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+  WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+  WHATSAPP_RECIPIENT: ${WHATSAPP_RECIPIENT:-}
+  OPENCLAW_ENABLED: ${OPENCLAW_ENABLED:-false}
+  OPENCLAW_BASE_URL: ${OPENCLAW_BASE_URL:-}
+  OPENCLAW_API_KEY: ${OPENCLAW_API_KEY:-}
+  OPENCLAW_MODEL: ${OPENCLAW_MODEL:-openclaw-weixin}
+  OPENCLAW_SESSION: ${OPENCLAW_SESSION:-}
+  OPENCLAW_TARGET: ${OPENCLAW_TARGET:-}
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eios}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eios}
+      POSTGRES_DB: ${POSTGRES_DB:-eios}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eios} -d ${POSTGRES_DB:-eios}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      <<: *channel_env
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-eios}:${POSTGRES_PASSWORD:-eios}@db:5432/${POSTGRES_DB:-eios}
+      REDIS_URL: redis://redis:6379/0
+      AI_API_KEY: ${AI_API_KEY:-${OPENAI_API_KEY:-}}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      TTS_VOICE: ${TTS_VOICE:-en-US-AriaNeural}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  bot:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "app.bot.main"]
+    environment:
+      <<: *channel_env
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-eios}:${POSTGRES_PASSWORD:-eios}@db:5432/${POSTGRES_DB:-eios}
+      REDIS_URL: redis://redis:6379/0
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?set TELEGRAM_BOT_TOKEN in .env}
+      AI_API_KEY: ${AI_API_KEY:-${OPENAI_API_KEY:-}}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      TTS_VOICE: ${TTS_VOICE:-en-US-AriaNeural}
+      TELEGRAM_OWNER_ID: ${TELEGRAM_OWNER_ID:-0}
+      TTS_PROVIDER: ${TTS_PROVIDER:-fish}
+      FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY:-}
+      FISH_AUDIO_BASE_URL: ${FISH_AUDIO_BASE_URL:-https://api.fish.audio}
+      FISH_AUDIO_VOICE_ID: ${FISH_AUDIO_VOICE_ID:-}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-}
+      ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID:-eleven_multilingual_v2}
+      VOICE_MIN_DURATION_SECONDS: ${VOICE_MIN_DURATION_SECONDS:-15}
+      VOICE_MAX_DURATION_SECONDS: ${VOICE_MAX_DURATION_SECONDS:-90}
+      VOICE_MAX_UPLOAD_MB: ${VOICE_MAX_UPLOAD_MB:-20}
+      VOICE_SAMPLE_RETENTION: ${VOICE_SAMPLE_RETENTION:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,time,sys; sys.exit(0 if os.path.exists('/tmp/bot_alive') and (time.time()-os.path.getmtime('/tmp/bot_alive'))<60 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,26 @@
+node_modules
+dist
+build
+coverage
+package-lock.json
+
+# Existing upstream files are preserved as-is; EIOS tooling does not reformat
+# them (additive-only rule — see docs/CONTRIBUTING.md).
+assets
+examples
+README.md
+LICENSE
+codex-instruct.py
+.github/workflows/python-app.yml
+.devcontainer
+.vscode
+
+# Python MVP backend + infra (not formatted by the JS/Prettier toolchain).
+app
+scripts
+docker-compose.yml
+Dockerfile
+.dockerignore
+requirements.txt
+.env.example
+docs/architecture
