@@ -1,3 +1,5 @@
+> **⚠️ 已弃用 / DEPRECATED (Milestone 0 planning).** 权威参考见 [`PROJECT_MASTER_AUDIT.md`](./PROJECT_MASTER_AUDIT.md)。本文件仅作历史记录，不再指导开发。
+
 # Architecture Decision Records (ADRs)
 
 This log records significant, hard-to-reverse decisions. Each entry is
